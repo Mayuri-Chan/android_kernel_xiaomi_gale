@@ -205,6 +205,10 @@
 	mt6370pd,intr_gpio = <&pio 41 0x0>;
 };
 
+&thermal_message {
+	board-sensor = "VIRTUAL-SENSOR";
+};
+
 /* CONSYS GPIO standardization */
 &pio {
 	consys_pins_default: consys_default {
@@ -324,7 +328,7 @@
 
 /* DISPSYS GPIO standardization end*/
 
-#include <gale/cust.dtsi>
+#include <mediatek/gale/cust.dtsi>
 #include "mediatek/cust_mt6768_camera.dtsi"
 //#include "mediatek/cust_mt6768_touch_1080x2160.dtsi"
 #include "mediatek/foursemi-fs15xx.dtsi"
