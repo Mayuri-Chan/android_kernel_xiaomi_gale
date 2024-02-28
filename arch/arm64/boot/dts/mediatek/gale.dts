@@ -324,7 +324,7 @@
 
 /* DISPSYS GPIO standardization end*/
 
-#include <gale/cust.dtsi>
+#include <mediatek/gale/cust.dtsi>
 #include "mediatek/cust_mt6768_camera.dtsi"
 //#include "mediatek/cust_mt6768_touch_1080x2160.dtsi"
 #include "mediatek/foursemi-fs15xx.dtsi"
