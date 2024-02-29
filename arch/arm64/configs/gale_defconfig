@@ -3,7 +3,7 @@ CONFIG_I2C_CHARDEV=y
 CONFIG_CMDLINE_EXTEND=y
 ### 2023.6.13 chengyuan@longcheer.com HTH-297468  Enable last_kmsg and last_logcat support __E ###
 CONFIG_PREEMPT=y
-CONFIG_IKHEADERS=m
+CONFIG_IKHEADERS=y
 ### 2023.6.13 chengyuan@longcheer.com HTH-297301  En-large kernel log buffer size __S ###
 CONFIG_LOG_BUF_SHIFT=21
 ### 2023.6.13 chengyuan@longcheer.com HTH-297301  En-large kernel log buffer size __E ###
@@ -217,6 +217,7 @@ CONFIG_MTK_TASK_TURBO=y
 CONFIG_MTK_TINYSYS_SCP_SUPPORT=y
 CONFIG_MTK_TINYSYS_SSPM_SUPPORT=y
 CONFIG_MTK_TINYSYS_SSPM_VERSION="v1"
+CONFIG_MTK_MET_PLF=y
 CONFIG_MTPROF=y
 CONFIG_MTK_AEE_HANGDET=y
 CONFIG_MTK_CM_MGR_LEGACY=y
