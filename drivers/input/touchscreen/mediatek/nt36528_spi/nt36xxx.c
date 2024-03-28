@@ -41,9 +41,6 @@
 #include "mtk_panel_ext.h"
 #include "mtk_disp_notify.h"
 #endif
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
-#endif
 
 #if NVT_TOUCH_ESD_PROTECT
 #include <linux/jiffies.h>
@@ -1482,18 +1479,12 @@ int32_t nvt_check_palm(uint8_t input_id, uint8_t *data)
 		ret = palm_state;
 		if (palm_state == PACKET_PALM_ON) {
 			NVT_LOG("get packet palm on event.\n");
-			#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-			    update_palm_sensor_value(1);
-			#endif
 			input_report_key(ts->input_dev, 523, 1);
 			input_sync(ts->input_dev);
 			input_report_key(ts->input_dev, 523, 0);
 			input_sync(ts->input_dev);
 		} else if (palm_state == PACKET_PALM_OFF) {
 			NVT_LOG("get packet palm off event.\n");
-			#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-			    update_palm_sensor_value(0);
-			#endif
 		} else {
 			// should never go here
 			NVT_ERR("invalid palm state %d!\n", palm_state);
@@ -1995,50 +1986,6 @@ int nvt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 }
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-static struct xiaomi_touch_interface xiaomi_touch_interfaces;
-extern int32_t nvt_set_pocket_palm_switch(uint8_t pocket_palm_switch);
-
-int nvt_palm_sensor_cmd(int on)
-{
-	int ret;
-
-	if (on) {
-		ret = nvt_set_pocket_palm_switch(1);
-	} else {
-		ret = nvt_set_pocket_palm_switch(0);
-	}
-
-	if (ret < 0) {
-		NVT_LOG("%s: write anti mis-touch cmd on...ERROR %08X !\n", __func__, ret);
-		return -EINVAL;
-	}
-	NVT_LOG("%s %d\n", __func__, on);
-
-	return 0;
-}
-
-int nvt_palm_sensor_write(int value)
-{
-	int ret = 0;
-
-	ts->palm_sensor_switch = value;
-
-	if (!bTouchIsAwake) {
-		NVT_LOG("bTouchIsAwake=%d\n", __func__, bTouchIsAwake);
-		return 0;
-	}
-	mutex_lock(&ts->lock);
-	ret = nvt_palm_sensor_cmd(value);
-	mutex_unlock(&ts->lock);
-	if (!ret) {
-		NVT_LOG("%s %d succeed\n", __func__, value);
-	}
-
-	return ret;
-}
-#endif
-
 #if IS_ENABLED(NVT_DRM_PANEL_NOTIFY) || IS_ENABLED(NVT_QCOM_PANEL_EVENT_NOTIFY)
 static int nvt_ts_check_dt(struct device_node *np)
 {
@@ -2300,11 +2247,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		ret = -ENOMEM;
 		goto err_malloc_rbuf;
 	}
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-	memset(&xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
-	xiaomi_touch_interfaces.palm_sensor_write = nvt_palm_sensor_write;
-	xiaomitouch_register_modedata(&xiaomi_touch_interfaces);
-#endif
 
 #if NVT_PM_WAIT_BUS_RESUME_COMPLETE
 	ts->dev_pm_suspend = false;
@@ -2939,15 +2881,6 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	mutex_lock(&ts->lock);
 
-	#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-	if (ts->palm_sensor_switch) {
-		NVT_LOG("palm sensor ON, switch to OFF\n");
-		update_palm_sensor_value(0);
-		nvt_palm_sensor_cmd(0);
-		ts->palm_sensor_switch = false;
-	}
-	#endif
-
 	NVT_LOG("start\n");
 
 	bTouchIsAwake = 0;
@@ -3061,14 +2994,6 @@ static int32_t nvt_ts_resume(struct device *dev)
 		nvt_set_proximity_switch(1);
 	}
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-	if (ts->palm_sensor_switch) {
-		NVT_LOG("palm sensor OFF, switch to ON\n");
-		update_palm_sensor_value(0);
-		nvt_palm_sensor_cmd(1);
-		ts->palm_sensor_switch = false;
-	}
-#endif
 	mutex_unlock(&ts->lock);
 
 #if LCT_TP_WORK_EN

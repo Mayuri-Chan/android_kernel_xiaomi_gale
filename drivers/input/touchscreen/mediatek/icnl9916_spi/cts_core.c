@@ -13,17 +13,6 @@
 #include "../lct_tp_common.h"
 #include "../lct_tp_selftest.h"
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
-int palm_sensor_write_value = 0 ;
-bool palm_sensor_write_record = false ;
-extern int cts_tcs_set_pocket_palm_mode(const struct cts_device *cts_dev, u8 enable);
-extern struct chipone_ts_data *palm_sensor_cts_data;
-#endif
-
-static u8 prox_active = 0;
-
-
 #ifdef CONFIG_CTS_I2C_HOST
 static int cts_i2c_writeb(const struct cts_device *cts_dev,
         u32 addr, u8 b, int retry, int delay)
@@ -1533,14 +1522,13 @@ int cts_irq_handler(struct cts_device *cts_dev)
     //cts_info("CFG_CTS_PALM_ID: %d, touch_info->vkey_state:%d",CFG_CTS_PALM_ID, touch_info->vkey_state);
     if (CFG_CTS_PALM_ID == touch_info->vkey_state) {
         cts_report_palm_event(cts_dev->pdata);
-        update_palm_sensor_value(1);
         //cts_info("pocket_palm near");
         cts_info("touch_info->vkey_state:%d",touch_info->vkey_state);
         cts_plat_release_all_touch(cts_dev->pdata);
         return 0;
         }
     else {
-        update_palm_sensor_value(0);
+        cts_info("touch_info->vkey_state:%d",touch_info->vkey_state);
     }
 #endif
 
@@ -1623,8 +1611,6 @@ int cts_suspend_device(struct cts_device *cts_dev)
         }
     }
 
-    update_palm_sensor_value(0);
-
     cts_info("Set suspend mode:%s",
         cts_dev->rtdata.gesture_wakeup_enabled ? "gesture" : "sleep");
 
@@ -1680,8 +1666,6 @@ int cts_resume_device(struct cts_device *cts_dev)
         }
     }
 
-    update_palm_sensor_value(0);
-
     if (retries < 0) {
         const struct cts_firmware *firmware = NULL;
 
@@ -1735,22 +1719,6 @@ int cts_resume_device(struct cts_device *cts_dev)
 #ifdef CFG_CTS_FW_LOG_REDIRECT
     if (cts_is_fw_log_redirect(cts_dev))
         cts_enable_fw_log_redirect(cts_dev);
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    cts_info("palm_sensor_write_record:%d ",palm_sensor_write_record);
-    cts_info("palm_sensor_write_value:%d", palm_sensor_write_value);
-    if (palm_sensor_write_record && !prox_active){
-        if (palm_sensor_write_value==0 || palm_sensor_write_value==1){
-            cts_tcs_set_pocket_palm_mode(cts_dev,palm_sensor_write_value);
-            cts_info("Rtry cts_palm_sensor_write after resume, value:%d",palm_sensor_write_value);
-            palm_sensor_write_record = false ;
-            palm_sensor_write_value = 0 ;
-        }
-        else {
-            cts_err("Invalid pocket_palm_mode parameter:%d",palm_sensor_write_value);
-        }
-    }
 #endif
 
 #ifdef CONFIG_CTS_TP_PROXIMITY
@@ -2936,43 +2904,6 @@ void cts_log(int level, const char *fmt, ...)
 
     va_end(args);
 }
-
-#ifdef CFG_CTS_PALM_DETECT
-int cts_palm_sensor_write(int cts_palm_switch)
-{
-    struct cts_device *cts_dev = &palm_sensor_cts_data->cts_dev;
-    int enable = -1;
-    int ret;
-    palm_sensor_write_value =  cts_palm_switch;
-    palm_sensor_write_record = true ;
-    cts_info("test1 palm_sensor_write_record:%d ",palm_sensor_write_record);
-    cts_info("test1 palm_sensor_write_value:%d", cts_palm_switch);
-
-    if (cts_palm_switch == 1){
-        enable =1;
-    }
-    else if (cts_palm_switch == 0){
-        enable = 0;
-    }
-    else {
-        enable = cts_palm_switch ;
-        cts_err("Invalid pocket_palm_mode parameter:%d",enable);
-        return 0 ;
-    }
-
-    cts_lock_device(cts_dev);
-    ret = cts_tcs_set_pocket_palm_mode(cts_dev,enable);
-    cts_unlock_device(cts_dev);
-    cts_info("cts_palm_switch = %d",enable);
-
-    if (ret) {
-        cts_err("Set pocket palm mode failed");
-        return -EIO;
-    }
-
-    return 0;
-}
-#endif
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(4, 6, 0)
 /* From lib/kstrtox.c */

@@ -672,10 +672,6 @@ extern void lct_ovt_tp_data_dump_proc_exit(void);
 extern int ovt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int code, int value);
 #endif
 
-#if CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-extern int update_palm_sensor_value(int value);
-#endif
-
 static inline int ovt_tcm_rmi_read(struct ovt_tcm_hcd *tcm_hcd,
 		unsigned short addr, unsigned char *data, unsigned int length)
 {
