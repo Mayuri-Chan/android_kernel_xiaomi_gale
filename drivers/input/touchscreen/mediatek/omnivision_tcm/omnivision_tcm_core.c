@@ -34,9 +34,6 @@
 #include <linux/regulator/consumer.h>
 #include "omnivision_tcm_core.h"
 #include <linux/proc_fs.h>
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
-#endif
 
 /* #define RESET_ON_RESUME */
 
@@ -1020,45 +1017,6 @@ int32_t ovt_set_proximity_switch(uint8_t prox_switch)
     }
 
     return ret;
-}
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-int32_t	ovt_palm_sensor_switch = 0;
-
-static struct xiaomi_touch_interface ovt_xiaomi_touch_interfaces;
-
-static int ovt_palm_sensor_cmd(int on)
-{
-	int ret;
-
-	if (on) {
-		ret = ovt_tcm_set_func_palm_detect_en_state(1);
-	} else {
-		ret = ovt_tcm_set_func_palm_detect_en_state(0);
-	}
-
-	if (ret < 0) {
-        printk("Enter %s(%d): set ovt_tcm_set_func_palm_detect_en_state failed, on=%d\n", __func__, __LINE__, on);
-		return -EINVAL;
-	}
-    printk("Enter %s(%d): set ovt_tcm_set_func_palm_detect_en_state success, on=%d\n", __func__, __LINE__, on);
-
-	return 0;
-}
-
-static int ovt_palm_sensor_write(int value)
-{
-	int ret = 0;
-
-	ovt_palm_sensor_switch = value;
-
-	ret = ovt_palm_sensor_cmd(value);
-	if (!ret) {
-        printk("Enter %s(%d): set ovt_palm_sensor_cmd succeed\n", __func__, __LINE__);
-	}
-
-	return ret;
 }
 #endif
 
@@ -3796,15 +3754,6 @@ mod_resume:
     }
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    if (ovt_palm_sensor_switch) {
-        printk("Enter %s(%d): palm sensor OFF, switch to ON\n", __func__, __LINE__);
-        update_palm_sensor_value(0);
-        ovt_palm_sensor_cmd(1);
-        ovt_palm_sensor_switch = false;
-    }
-#endif
-
 #if LCT_TP_USB_PLUGIN
     if (g_touchscreen_usb_pulgin.valid && g_touchscreen_usb_pulgin.usb_plugged_in)
         g_touchscreen_usb_pulgin.event_callback();
@@ -3969,15 +3918,6 @@ static int ovt_tcm_suspend(struct device *dev)
 			complete(&response_complete);
 		}
 	}
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    if (ovt_palm_sensor_switch) {
-        printk("Enter %s(%d): palm sensor ON, switch to OFF\n", __func__, __LINE__);
-        update_palm_sensor_value(0);
-        ovt_palm_sensor_cmd(0);
-        ovt_palm_sensor_switch = false;
-    }
-#endif
 
 	tcm_hcd->in_suspend = true;
 	mutex_unlock(&tcm_hcd->suspend_resume_mutex);
@@ -4498,12 +4438,6 @@ static int ovt_tcm_probe(struct platform_device *pdev)
 				"Failed to allocate memory for tcm_hcd\n");
 		return -ENOMEM;
 	}
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-	memset(&ovt_xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
-	ovt_xiaomi_touch_interfaces.palm_sensor_write = ovt_palm_sensor_write;
-	xiaomitouch_register_modedata(&ovt_xiaomi_touch_interfaces);
-#endif
 
 	platform_set_drvdata(pdev, tcm_hcd);
 

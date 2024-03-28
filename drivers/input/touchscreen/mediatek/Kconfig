@@ -90,7 +90,6 @@ config TOUCHSCREEN_MTK_NT36xxx
 	  module will be called.
 
 source "drivers/input/touchscreen/mediatek/NT36xxx/Kconfig"
-source "drivers/input/touchscreen/mediatek/xiaomi/Kconfig"
 
 config TOUCHSCREEN_NT36xxx_HOSTDL_SPI
 	bool "NT36528 for Mediatek packag"

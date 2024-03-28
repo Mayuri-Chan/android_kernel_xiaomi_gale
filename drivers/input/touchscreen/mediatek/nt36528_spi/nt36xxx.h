@@ -195,9 +195,6 @@ struct nvt_ts_data {
 	struct workqueue_struct *event_wq;
   	struct work_struct resume_work;
 	bool irq_enabled;
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-	bool palm_sensor_switch;
-#endif
 	bool pen_support;
 	uint8_t x_gang_num;
 	uint8_t y_gang_num;

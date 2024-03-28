@@ -693,16 +693,10 @@ static void touch_report(void)
 
 #if SUPPORT_PALM_DETECT
 	if (GESTURE_PALM_DETECT == touch_data->gesture_id) {
-    #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-        update_palm_sensor_value(1);
-    #endif
 
         //palm detect
         LOGN(tcm_hcd->pdev->dev.parent, "palm detect\n");
 	} else {
-    #ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-        update_palm_sensor_value(0);
-    #endif
 	    LOGN(tcm_hcd->pdev->dev.parent, "no palm detect\n");
 	}
 #endif

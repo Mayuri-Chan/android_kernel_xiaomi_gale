@@ -45,10 +45,6 @@
 
 #include "focaltech_core.h"
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
-#endif
-
 /*****************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
@@ -105,7 +101,6 @@ extern int tp_select_proximity;
 extern void set_lcd_reset_gpio_keep_high(bool en);
 extern int ps_send_touch_event(int32_t data);
 extern int fts_proximity_readdata(struct fts_ts_data *ts_data);
-static int fts_read_palm_data(void);
 
 static int fts_enter_proximity_mode(int mode)
 {
@@ -1221,74 +1216,8 @@ static int fts_irq_read_report(struct fts_ts_data *ts_data)
         break;
     }
 
-if (ts_data->palm_sensor_switch)
-        fts_read_palm_data();
-
     return 0;
 }
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-static struct xiaomi_touch_interface xiaomi_touch_interfaces;
-int fts_read_palm_data(void)
-{
-    int ret = 0;
-    u8 reg_value;
-
-    if (fts_data == NULL)
-        return -EINVAL;
-
-    ret = fts_read_reg(FTS_PALM_DATA, &reg_value);
-    if (ret < 0) {
-        FTS_ERROR("read palm data error\n");
-        return -EINVAL;
-    }
-    if (reg_value == 0x01)
-        update_palm_sensor_value(1);
-    else if (reg_value == 0x00)
-        update_palm_sensor_value(0);
-    if (reg_value == 0x00 || reg_value == 0x01)
-        FTS_DEBUG("update palm data:0x%02X", reg_value);
-    return 0;
-
-}
-int fts_palm_sensor_cmd(int on)
-{
-    int ret;
-
-    if (on) {
-        ret = fts_write_reg(0x9A, 0x01);
-    } else {
-        ret = fts_write_reg(0x9A, 0x00);
-    }
-
-    if (ret < 0) {
-        FTS_INFO("%s: write anti mis-touch cmd on...ERROR %08X !\n", __func__, ret);
-        return -EINVAL;
-    }
-    FTS_INFO("%s %d\n", __func__, on);
-
-    return 0;
-}
-
-int fts_palm_sensor_write(int value)
-{
-    int ret = 0;
-
-    if (value == 3) {
-        FTS_INFO("%s %d succeed\n", __func__, value);
-        update_palm_sensor_value(3);
-        return 0;
-    } else {
-        value = !!value;
-        fts_data->palm_sensor_switch = value;
-        ret = fts_palm_sensor_cmd(value);
-        if (!ret) {
-            FTS_INFO("%s %d succeed\n", __func__, value);
-        }
-    }
-    return ret;
-}
-#endif
 
 static irqreturn_t fts_irq_handler(int irq, void *data)
 {
@@ -1982,15 +1911,6 @@ static int fts_ts_suspend(struct device *dev)
     }
 #endif
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    if (fts_data->palm_sensor_switch) {
-        FTS_INFO("%s: palm sensor on status, switch to off\n", __func__);
-        update_palm_sensor_value(0);
-        fts_palm_sensor_cmd(0);
-        fts_data->palm_sensor_switch = false;
-    }
-#endif
-
     fts_esdcheck_suspend(ts_data);
 
     if (ts_data->gesture_support) {
@@ -2085,13 +2005,6 @@ static int fts_ts_resume(struct device *dev)
     }
 #else
         fts_irq_enable();
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    if (fts_data->palm_sensor_switch) {
-        FTS_INFO("%s: palm sensor off status, switch to on\n", __func__);
-        fts_palm_sensor_cmd(ts_data->palm_sensor_switch);
-    }
 #endif
 
 #if LCT_TP_USB_PLUGIN
@@ -2239,12 +2152,6 @@ int fts_ts_probe_entry(struct fts_ts_data *ts_data)
         FTS_ERROR("allocate memory for platform_data fail");
         return -ENOMEM;
     }
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    memset(&xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
-    xiaomi_touch_interfaces.palm_sensor_write = fts_palm_sensor_write;
-    xiaomitouch_register_modedata(&xiaomi_touch_interfaces);
-#endif
 
 #if FTS_PSENSOR_ENABLE
     fts_proximity_init();
