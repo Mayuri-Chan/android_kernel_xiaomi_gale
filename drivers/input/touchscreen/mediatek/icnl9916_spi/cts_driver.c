@@ -13,12 +13,6 @@
 #include "cts_oem.h"
 #include "../lct_tp_common.h"
 
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-#include "../xiaomi/xiaomi_touch.h"
-static struct xiaomi_touch_interface xiaomi_touch_interfaces;
-struct chipone_ts_data *palm_sensor_cts_data;
-#endif
-
 extern char touch_lcm_name[256];
 static void cts_resume_work_func(struct work_struct *work);
 
@@ -424,8 +418,6 @@ static int cts_driver_probe(struct spi_device *client)
         goto err_free_cts_data;
     }
 
-    palm_sensor_cts_data = cts_data;
-
 #ifdef CONFIG_CTS_I2C_HOST
     i2c_set_clientdata(client, cts_data);
     cts_data->i2c_client = client;
@@ -543,12 +535,6 @@ static int cts_driver_probe(struct spi_device *client)
         cts_err("Init earjack detect failed %d", ret);
         // Ignore this error
     }
-#endif
-
-#ifdef CONFIG_TOUCHSCREEN_XIAOMI_TOUCHFEATURE
-    memset(&xiaomi_touch_interfaces, 0x00, sizeof(struct xiaomi_touch_interface));
-    xiaomi_touch_interfaces.palm_sensor_write = cts_palm_sensor_write;
-    xiaomitouch_register_modedata(&xiaomi_touch_interfaces);
 #endif
 
     ret = cts_oem_init(cts_data);

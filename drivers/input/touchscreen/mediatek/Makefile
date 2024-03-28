@@ -18,7 +18,6 @@ obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_grip_area.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_palm.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_common.o
 obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  lct_tp_proximity.o
-obj-$(CONFIG_TOUCHSCREEN_COMMON)	    +=  xiaomi/
 
 obj-$(CONFIG_TOUCHSCREEN_FTS)	+=  focaltech_touch/
 obj-$(CONFIG_TOUCHSCREEN_MTK_GT1151)	+=  GT1151/
