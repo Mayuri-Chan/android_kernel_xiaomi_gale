@@ -583,6 +583,7 @@ S:	Supported
 F:	fs/afs/
 F:	include/trace/events/afs.h
 F:	Documentation/filesystems/afs.txt
+F:	scripts/ssl-common.h
 W:	https://www.infradead.org/~dhowells/kafs/
 
 AGPGART DRIVER
