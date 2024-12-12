@@ -32,6 +32,12 @@
 #include <linux/interrupt.h>
 #include "omnivision_tcm_core.h"
 
+#if WAKEUP_GESTURE
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_COMMON)
+#include <linux/input/tp_common.h>
+#endif
+#endif
+
 #define TYPE_B_PROTOCOL
 
 //#define REPORT_Z_MAJOR_VALUE
@@ -914,6 +920,9 @@ static int touch_get_input_params(void)
 static int touch_set_input_dev(void)
 {
 	int retval;
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+    int ret;
+#endif
 	struct ovt_tcm_hcd *tcm_hcd = touch_hcd->tcm_hcd;
 
 	touch_hcd->input_dev = input_allocate_device();
@@ -943,6 +952,13 @@ static int touch_set_input_dev(void)
 	touch_hcd->input_dev->event = ovt_gesture_switch;
 	set_bit(KEY_WAKEUP, touch_hcd->input_dev->keybit);
 	input_set_capability(touch_hcd->input_dev, EV_KEY, KEY_WAKEUP);
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+	ret = tp_common_set_double_tap_ops(&double_tap_ops);
+	if (ret < 0) {
+		pr_err("%s: Failed to create double_tap node err=%d\n",
+		__func__, ret);
+	}
+#endif
 #endif
 
 	retval = touch_set_input_params();
@@ -1369,7 +1385,3 @@ int touch_resume(struct ovt_tcm_hcd *tcm_hcd)
 
 	return 0;
 }
-
-
-
-

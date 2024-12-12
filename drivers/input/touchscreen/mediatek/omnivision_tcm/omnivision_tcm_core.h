@@ -670,6 +670,9 @@ extern void lct_ovt_tp_data_dump_proc_exit(void);
 
 #if WAKEUP_GESTURE
 extern int ovt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int code, int value);
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+extern struct tp_common_ops double_tap_ops;
+#endif
 #endif
 
 static inline int ovt_tcm_rmi_read(struct ovt_tcm_hcd *tcm_hcd,

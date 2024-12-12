@@ -87,6 +87,9 @@ static void speedup_resume(struct work_struct *work);
 
 #if WAKEUP_GESTURE
 bool ovt_gesture_flag = false;
+#if IS_ENABLED(CONFIG_TOUCHSCREEN_COMMON)
+#include <linux/input/tp_common.h>
+#endif
 #endif
 
 #define ovt_tcm_set_func_en(c_name, id) \
@@ -713,6 +716,28 @@ int ovt_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 
 	return 0;
 }
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t double_tap_show(struct kobject *kobj,
+                               struct kobj_attribute *attr, char *buf)
+{
+    return sprintf(buf, "%d\n", ovt_gesture_flag);
+}
+static ssize_t double_tap_store(struct kobject *kobj,
+                                struct kobj_attribute *attr, const char *buf,
+                                size_t count)
+{
+    int rc, val;
+    rc = kstrtoint(buf, 10, &val);
+    if (rc)
+    return -EINVAL;
+    ovt_gesture_flag = !!val;
+    return count;
+}
+struct tp_common_ops double_tap_ops = {
+    .show = double_tap_show,
+    .store = double_tap_store
+};
+#endif
 #endif
 
 static ssize_t ovt_tcm_sysfs_irq_en_store(struct device *dev,
