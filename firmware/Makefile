@@ -16,6 +16,8 @@ fw-shipped-$(CONFIG_TOUCHSCREEN_NT36xxx_HOSTDL_SPI) += \
 
 fw-shipped-$(CONFIG_TOUCHSCREEN_FT8057P_SPI) += focaltech_ts_fw_boe.bin
 
+fw-shipped-$(CONFIG_TOUCHSCREEN_CHIPONE) += chipone_firmware.bin
+
 fw-shipped-all := $(fw-shipped-y) $(fw-shipped-m) $(fw-shipped-)
 quiet_cmd_ihex  = IHEX    $@
       cmd_ihex  = $(OBJCOPY) -Iihex -Obinary $< $@
