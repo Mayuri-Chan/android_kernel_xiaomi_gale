@@ -12,6 +12,8 @@ struct sk_buff;
 struct sock;
 struct net;
 
+typedef struct dst_entry * (*android_dst_ops_negative_advice_old_t)(struct dst_entry *);
+
 struct dst_ops {
 	unsigned short		family;
 	unsigned int		gc_thresh;
