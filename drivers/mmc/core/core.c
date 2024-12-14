@@ -52,6 +52,7 @@
 #include "sd_ops.h"
 #include "sdio_ops.h"
 #include "mtk_mmc_block.h"
+#include "../host/mtk-sd-dbg.h"
 
 /* The max erase timeout, used when host->max_busy_timeout isn't specified */
 #define MMC_ERASE_TIMEOUT_MS	(60 * 1000) /* 60 s */
@@ -209,6 +210,8 @@ void mmc_request_done(struct mmc_host *host, struct mmc_request *mrq)
 				mrq->stop->resp[2], mrq->stop->resp[3]);
 		}
 	}
+	if(host && cmd)
+		dbg_add_host_log(host, 1, cmd->opcode, cmd->resp[0]);
 	/*
 	 * Request starter must handle retries - see
 	 * mmc_wait_for_req_done().
@@ -903,6 +906,8 @@ int mmc_run_queue_thread(void *data)
 	pr_info("[CQ] start cmdq thread\n");
 	mt_bio_queue_alloc(current, NULL, false);
 
+	set_user_nice(current, MIN_NICE);
+
 	while (1) {
 		mt_biolog_cmdq_check();
 		/* End request stage 1/2 */
@@ -1261,6 +1266,17 @@ int mmc_cqe_start_req(struct mmc_host *host, struct mmc_request *mrq)
 		goto out_err;
 
 	err = host->cqe_ops->cqe_request(host, mrq);
+
+	if(host && mrq && mrq->cmd)
+		dbg_add_host_log(host, 5, mrq->cmd->opcode, mrq->cmd->arg);
+
+	if(host && mrq && mrq->data){
+		if (mrq->data->flags & MMC_DATA_WRITE)
+			dbg_add_host_log(host, 5, MMC_EXECUTE_WRITE_TASK, mrq->data->blocks);//CMD47
+		else if (mrq->data->flags & MMC_DATA_READ)
+			dbg_add_host_log(host, 5, MMC_EXECUTE_READ_TASK, mrq->data->blocks);//CMD46
+	}
+
 	if (err)
 		goto out_err;
 

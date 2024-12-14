@@ -76,6 +76,15 @@ struct IMGSENSOR  gimgsensor;
 struct IMGSENSOR *pgimgsensor = &gimgsensor;
 MUINT32 last_id;
 
+unsigned char fusion_id_main[96] = {0};
+unsigned char sn_main[96] = {0};
+unsigned char fusion_id_front[96] = {0};
+unsigned char sn_front[96] = {0};
+unsigned char fusion_id_back2[96] = {0};
+unsigned char sn_back2[96] = {0};
+static char imgsensor_name[128] = {0};
+static int name_count = 0;
+
 /*prevent imgsensor race condition in vulunerbility test*/
 struct mutex imgsensor_mutex;
 
@@ -596,6 +605,11 @@ int imgsensor_set_driver(struct IMGSENSOR_SENSOR *psensor)
 					    psensor_inst->psensor_name);
 
 					ret = drv_idx;
+					if (name_count <= IMGSENSOR_SENSOR_IDX_MAIN2){
+						strcat(imgsensor_name,psensor_inst->psensor_name);
+						strcat(imgsensor_name,";");
+						name_count++;
+					}
 					break;
 				}
 			} else {
@@ -3003,12 +3017,130 @@ static struct platform_driver gimgsensor_platform_driver = {
 #endif
 	}
 };
+static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *attr, char *buf)
+  {
+        ssize_t ret = 0;
+        int num1 = 0;
+        int num2 = 0;
+		int num3 = 0;
+        char* dst[4];
+        unsigned int i=0;
+        unsigned int j=0;
+        char imgsensorname[128] = {0};
+        char* src_name = NULL;
+        if(strlen(imgsensor_name) > 0){
+           strncpy(imgsensorname, imgsensor_name, strlen(imgsensor_name));
+           src_name = imgsensorname;
+		   for(i=0; ((i < 3)&& (src_name != NULL)); i++) {
+			 dst[i] = strsep(&src_name, ";");
+			 pr_err("[zengx] dst[%d]:%s \n", i,  dst[i]);
+		   }
 
+		   for (j = 0; j < i; j++){
+			if(!strcmp("s5kjns_sunny_main_ii_mipi_raw", dst[j])){
+				num1 = sprintf(buf, "WIDE=s5kjns_sunny_main_i_mipi_raw\n");
+				pr_err("[zengx] WIDE=s5kjns_sunny_main_i_mipi_raw");
+				continue;
+			}
+			if(!strcmp("ov50d40_truly_main_i_mipi_raw", dst[j])){
+				num1 = sprintf(buf, "WIDE=ov50d40_truly_main_ii_mipi_raw\n");
+				pr_err("[zengx] WIDE=ov50d40_truly_main_ii_mipi_raw");
+				continue;
+			}
+			if(!strcmp("s5kjns_truly_main_iii_mipi_raw", dst[j])){
+				num1 = sprintf(buf, "WIDE=s5kjns_truly_main_iii_mipi_raw\n");
+				pr_err("[zengx] WIDE=s5kjns_truly_main_iii_mipi_raw");
+				continue;
+			}
+			if(!strcmp("ov8856_aac_front_i_mipi_raw", dst[j]) ||
+			!strcmp("ov8856_truly_front_ii_mipi_raw", dst[j])){
+				num2 = sprintf(buf + num1, "FRONT=%s\n", dst[j]);
+				pr_err("[zengx] FRONT=%s\n", dst[j]);
+				continue;
+			}
+
+			if(!strcmp("sc202cs_aac_marco_ii_mipi_raw", dst[j]) ||
+			!strcmp("sc202cs_sunny_marco_i_mipi_raw", dst[j])){
+				num3 = sprintf(buf + num1 + num2, "MACRO=%s\n", dst[j]);
+				pr_err("[zengx] MACRO=%s\n", dst[j]);
+				continue;
+			}
+		   }
+		}else{
+			pr_err("[zengx] imgsensorname is NULL");
+		}
+      ret = strlen(buf) + 1;
+      return ret;
+  }
+  static DEVICE_ATTR(sensor, 0664, imgsensor_name_show, NULL);
+  static struct kobject * sensor_kobject;
+
+
+  static ssize_t sensorid_show(struct device *dev, struct device_attribute *attr, char *buf)
+  {
+  	int i;
+  	ssize_t size = 0;
+  
+  	//main
+		for (i = 0; i < 16; i++) {
+			sprintf(buf + 2 * i, "%02x", fusion_id_main[i]);
+			//pr_err("[zengx] fusion_id_main[%d] = %02x", i, fusion_id_main[i]);
+		}
+		size = strlen(buf);
+
+	//front
+		for (i = 0; i < 16; i++) {
+			sprintf(buf + size + 2 * i, "%02x", fusion_id_front[i]);
+			//pr_err("[zengx] fusion_id_front[%d] = %02x", i, fusion_id_front[i]);
+		}
+
+		size = strlen(buf);
+
+	//macro
+  	for (i = 0; i < 8; i++) {
+  		sprintf(buf + size + 2*i, "%02x", fusion_id_back2[i]);
+  	}
+  
+  	return 100;
+  
+  }
+  static DEVICE_ATTR(sensorid, 0664, sensorid_show, NULL);
+  static ssize_t sensorsn_show(struct device *dev, struct device_attribute *attr, char *buf)
+  {
+      int i;
+      ssize_t size = 0;
+  	//main
+  	//pr_err("[wpc] NULL sensor main3 =%02x.\n",sn_main[i]);
+  
+      //strncpy(buf, "main:", 5);
+      for (i = 0; i < 14; i++) {
+		sprintf(buf + i, "%1c", sn_main[i]);
+      }
+      size = strlen(buf);
+  	//front
+      //strncpy(buf + size, "1", 1);
+      for (i = 0; i < 14; i++) {
+		sprintf(buf + size + i, "%1c", sn_front[i]);
+      }
+  	//back2
+  	size = strlen(buf);
+  	//strncpy(buf + size, "back2:", 6);//fusion_id_back2
+  	for (i = 0; i < 14; i++) {
+		sprintf(buf + size + i, "%1c", sn_back2[i]);
+  	}
+  	size = size + 6 + 2*i + 1;
+
+  	return 179;
+  
+  }
+  
+  static DEVICE_ATTR(sensorsn, 0664, sensorsn_show, NULL);
 /*
  * imgsensor_init()
  */
 static int __init imgsensor_init(void)
 {
+	int ret;
 	pr_info("[camerahw_probe] start\n");
 
 	if (platform_driver_register(&gimgsensor_platform_driver)) {
@@ -3030,7 +3162,18 @@ static int __init imgsensor_init(void)
 #ifdef IMGSENSOR_DFS_CTRL_ENABLE
 	imgsensor_dfs_ctrl(DFS_CTRL_ENABLE, NULL);
 #endif
-
+     sensor_kobject = kobject_create_and_add("android_camera", NULL);
+     if (sensor_kobject == NULL) {
+          pr_info("[imgsensor_init]Big error: sensor_kobject_create_sysfs_ failed\n");
+      } else {
+		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensor.attr);
+  		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensorid.attr);
+  		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensorsn.attr);
+          if (ret) {
+          	pr_err("%s failed \n", __func__);
+          	kobject_del(sensor_kobject);
+          }
+      }
 	return 0;
 }
 

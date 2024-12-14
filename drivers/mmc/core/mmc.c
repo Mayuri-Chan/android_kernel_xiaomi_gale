@@ -1578,6 +1578,7 @@ static int mmc_hs200_tuning(struct mmc_card *card)
 	return mmc_execute_tuning(card);
 }
 
+
 /*
  * Handle the detection and initialisation of a card.
  *
@@ -1683,6 +1684,8 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		if (err)
 			goto free_card;
 	}
+
+
 
 	/*
 	 * handling only for cards supporting DSR and hosts requesting

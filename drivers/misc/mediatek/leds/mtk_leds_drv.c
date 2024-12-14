@@ -62,13 +62,13 @@ static int I2C_SET_FOR_BACKLIGHT  = 350;
 #define CONTROL_BL_TEMPERATURE
 #endif
 
-#define MT_LED_INTERNAL_LEVEL_BIT_CNT 10
+#define MT_LED_INTERNAL_LEVEL_BIT_CNT 11
 
 /******************************************************************************
  * for DISP backlight High resolution
  *****************************************************************************/
 #ifdef LED_INCREASE_LED_LEVEL_MTKPATCH
-#define LED_INTERNAL_LEVEL_BIT_CNT 10
+#define LED_INTERNAL_LEVEL_BIT_CNT 11
 #endif
 /* Fix dependency if CONFIG_MTK_LCM not ready */
 void __weak disp_aal_notify_backlight_changed(int bl_1024) {};
@@ -136,8 +136,7 @@ int setMaxbrightness(int max_level, int enable)
 	}
 #else
 	pr_info("Set max brightness go through AAL\n");
-	disp_bls_set_max_backlight(((((1 << LED_INTERNAL_LEVEL_BIT_CNT) -
-				      1) * max_level + 127) / 255));
+	disp_bls_set_max_backlight(max_level);
 #endif				/* endif CONFIG_MTK_AAL_SUPPORT */
 	return 0;
 }
@@ -355,8 +354,8 @@ int backlight_brightness_set(int level)
 {
 	struct cust_mt65xx_led *cust_led_list = mt_get_cust_led_list();
 
-	if (level > ((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1))
-		level = ((1 << MT_LED_INTERNAL_LEVEL_BIT_CNT) - 1);
+	if (level > 2047)
+		level = 2047;
 	else if (level < 0)
 		level = 0;
 
@@ -385,13 +384,22 @@ int backlight_brightness_set(int level)
 					   level);
 	} else {
 		return mt65xx_led_set_cust(&cust_led_list[MT65XX_LED_TYPE_LCD],
-					   (level >>
-					    (MT_LED_INTERNAL_LEVEL_BIT_CNT -
-					     8)));
+					   level);
 	}
 
 }
 EXPORT_SYMBOL(backlight_brightness_set);
+
+int get_last_backlight_level(void) {
+	return last_level;
+}
+EXPORT_SYMBOL(get_last_backlight_level);
+
+int get_current_backlight_level(void) {
+	return current_level;
+}
+EXPORT_SYMBOL(get_current_backlight_level);
+
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 static int led_i2c_probe(struct i2c_client *client,
 		const struct i2c_device_id *id);
@@ -487,7 +495,7 @@ static int mt65xx_leds_probe(struct platform_device *pdev)
 #ifdef CONTROL_BL_TEMPERATURE
 
 	last_level = 0;
-	limit = 255;
+	limit = 2047;
 	limit_flag = 0;
 	current_level = 0;
 	pr_debug

@@ -204,6 +204,14 @@ config CHARGER_BQ25890
 	  and config MTK_SWCHR_SUPPORT
 	  Set to Yes if BQ25890 is used.
 
+config CHARGER_SC8989X
+	bool "CHARGER_SC8989X"
+	help
+	  This is to enable MediaTek supports to SC8989X.
+	  It depends on config MTK_SMART_BATTERY
+	  and config MTK_SWCHR_SUPPORT
+	  Set to Yes if SC8989X is used.
+
 config CHARGER_SGM41511
 	bool "CHARGER_SGM41511"
 	help

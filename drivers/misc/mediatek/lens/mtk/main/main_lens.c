@@ -21,6 +21,10 @@
 #include <linux/compat.h>
 #endif
 
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+#include "linux/pm_wakeup.h"
+#endif
+
 /* kernel standard */
 #include <linux/regulator/consumer.h>
 #include <linux/pinctrl/consumer.h>
@@ -68,6 +72,13 @@ static struct i2c_board_info kd_lens_dev __initdata = {
 	pr_info(AF_DRVNAME " [%s] " format, __func__, ##args)
 #else
 #define LOG_INF(format, args...)
+#endif
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+static unsigned long af_len = 200;
+static int Open_holder = 0;
+static int Close_holder = 0;
+static struct wakeup_source vib_wakelock;
 #endif
 
 /* OIS/EIS Timer & Workqueue */
@@ -126,8 +137,13 @@ static struct stAF_DrvList g_stAF_DrvList[MAX_NUM_OF_LENS] = {
 	 FP5510E2AF_Release, FP5510E2AF_GetFileName, NULL},
 	{1, AFDRV_DW9718AF, DW9718AF_SetI2Cclient, DW9718AF_Ioctl,
 	 DW9718AF_Release, DW9718AF_GetFileName, NULL},
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	{1, AFDRV_GT9764AF, GT9764AF_SetI2Cclient, GT9764AF_Ioctl,
+	GT9764AF_Release, GT9764AF_GetFileName, NULL, GT9764AF_VIB_ResetPos},
+#else
 	{1, AFDRV_GT9764AF, GT9764AF_SetI2Cclient, GT9764AF_Ioctl,
 	GT9764AF_Release, GT9764AF_GetFileName, NULL},
+#endif
 //#ifdef SUPPORT_GT9768AF
 	{1, AFDRV_GT9768AF, GT9768AF_SetI2Cclient, GT9768AF_Ioctl,
 	GT9768AF_Release, GT9768AF_GetFileName, NULL},
@@ -150,6 +166,13 @@ static struct stAF_DrvList g_stAF_DrvList[MAX_NUM_OF_LENS] = {
 	 LC898122AF_Release, LC898122AF_GetFileName, NULL},
 	{1, AFDRV_WV511AAF, WV511AAF_SetI2Cclient, WV511AAF_Ioctl,
 	 WV511AAF_Release, WV511AAF_GetFileName, NULL},
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	{1, AFDRV_PD9302AF, PD9302AF_SetI2Cclient, PD9302AF_Ioctl,
+	PD9302AF_Release, PD9302AF_GetFileName, NULL, PD9302AF_VIB_ResetPos},
+#else
+	{1, AFDRV_PD9302AF, PD9302AF_SetI2Cclient, PD9302AF_Ioctl,
+	PD9302AF_Release, PD9302AF_GetFileName, NULL},
+#endif
 };
 
 static struct stAF_DrvList *g_pstAF_CurDrv;
@@ -166,11 +189,17 @@ static struct class *actuator_class;
 static struct device *lens_device;
 
 static struct regulator *vcamaf_ldo;
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+static struct regulator *vcamio_ldo;
+#endif
 static struct pinctrl *vcamaf_pio;
 static struct pinctrl_state *vcamaf_pio_on;
 static struct pinctrl_state *vcamaf_pio_off;
 
 #define CAMAF_PMIC     "camaf_m1_pmic"
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+#define CAMIO_PMIC     "camio_m1_pmic"
+#endif
 #define CAMAF_GPIO_ON  "camaf_m1_gpio_on"
 #define CAMAF_GPIO_OFF "camaf_m1_gpio_off"
 
@@ -180,9 +209,13 @@ static void camaf_power_init(void)
 	struct device_node *node, *kd_node;
 
 	/* check if customer camera node defined */
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	node = of_find_compatible_node(
+		NULL, NULL, "mediatek,camera_main_af");
+#else
 	node = of_find_compatible_node(
 		NULL, NULL, "mediatek,camera_af_lens");
-
+#endif
 	if (node) {
 		kd_node = lens_device->of_node;
 		lens_device->of_node = node;
@@ -192,9 +225,20 @@ static void camaf_power_init(void)
 			if (IS_ERR(vcamaf_ldo)) {
 				ret = PTR_ERR(vcamaf_ldo);
 				vcamaf_ldo = NULL;
-				LOG_INF("cannot get regulator\n");
+				LOG_INF("cannot get regulator vaf\n");
 			}
 		}
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+		if (vcamio_ldo == NULL) {
+			vcamio_ldo = regulator_get(lens_device, CAMIO_PMIC);
+			if (IS_ERR(vcamio_ldo)) {
+				ret = PTR_ERR(vcamio_ldo);
+				vcamio_ldo = NULL;
+				LOG_INF("cannot get regulator vio\n");
+			}
+		}
+#endif
 
 		if (vcamaf_pio == NULL) {
 			vcamaf_pio = devm_pinctrl_get(lens_device);
@@ -233,8 +277,15 @@ static void camaf_power_on(void)
 
 	if (vcamaf_ldo) {
 		ret = regulator_enable(vcamaf_ldo);
-		LOG_INF("regulator enable (%d)\n", ret);
+		LOG_INF("regulator enable vaf (%d)\n", ret);
 	}
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	if (vcamio_ldo) {
+		ret = regulator_enable(vcamio_ldo);
+		LOG_INF("regulator enable vio (%d)\n", ret);
+	}
+#endif
 
 	if (vcamaf_pio && vcamaf_pio_on) {
 		ret = pinctrl_select_state(vcamaf_pio, vcamaf_pio_on);
@@ -248,8 +299,15 @@ static void camaf_power_off(void)
 
 	if (vcamaf_ldo) {
 		ret = regulator_disable(vcamaf_ldo);
-		LOG_INF("regulator disable (%d)\n", ret);
+		LOG_INF("regulator disable vaf (%d)\n", ret);
 	}
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	if (vcamio_ldo) {
+		ret = regulator_disable(vcamio_ldo);
+		LOG_INF("regulator disable vio (%d)\n", ret);
+	}
+#endif
 
 	if (vcamaf_pio && vcamaf_pio_off) {
 		ret = pinctrl_select_state(vcamaf_pio, vcamaf_pio_off);
@@ -555,6 +613,33 @@ static long AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 		}
 		break;
 
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	case AFIOC_T_SETOPENER:
+		spin_lock(&g_AF_SpinLock);
+		Open_holder |= a_u4Param;
+		i4RetValue = Open_holder;
+		if(a_u4Param == VIB_HOLD){
+		    spin_unlock(&g_AF_SpinLock);
+			__pm_stay_awake(&vib_wakelock);
+		}else{
+			spin_unlock(&g_AF_SpinLock);
+		}
+		LOG_INF("Open_holder = %d\n",Open_holder);
+
+		break;
+	case AFIOC_T_SETCLOSEER:
+		spin_lock(&g_AF_SpinLock);
+		Close_holder = a_u4Param;
+		Open_holder &= ~a_u4Param;
+		spin_unlock(&g_AF_SpinLock);
+		LOG_INF("Close_holder = %d;Open_holder = %d\n",Close_holder,Open_holder);
+		break;
+	case AFIOC_T_SETVCMPOS:
+		af_len = a_u4Param;
+		LOG_INF("set af_len = %d\n",af_len);
+		break;
+#endif
+
 	default:
 		if (g_pstAF_CurDrv) {
 			if (g_pstAF_CurDrv->pAF_Ioctl)
@@ -591,11 +676,21 @@ static int AF_Open(struct inode *a_pstInode, struct file *a_pstFile)
 	LOG_INF("Start\n");
 
 	spin_lock(&g_AF_SpinLock);
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	Close_holder = NO_HOLD;
+	if(g_s4AF_Opened  == 1){
+		spin_unlock(&g_AF_SpinLock);
+		return 0;
+	}
+#else
 	if (g_s4AF_Opened) {
 		spin_unlock(&g_AF_SpinLock);
 		LOG_INF("The device is opened\n");
 		return -EBUSY;
 	}
+#endif
+
 	g_s4AF_Opened = 1;
 	spin_unlock(&g_AF_SpinLock);
 
@@ -627,11 +722,38 @@ static int AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 {
 	LOG_INF("Start\n");
 
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	spin_lock(&g_AF_SpinLock);
+	if (g_pstAF_CurDrv && g_s4AF_Opened >= 1 && Open_holder == 0) {
+		spin_unlock(&g_AF_SpinLock);
+#else
 	if (g_pstAF_CurDrv) {
+#endif
 		g_pstAF_CurDrv->pAF_Release(a_pstInode, a_pstFile);
 		g_pstAF_CurDrv = NULL;
-	} else {
+	}
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+        else if(g_s4AF_Opened >= 1 && g_pstAF_CurDrv ){
+			if(Open_holder == VIB_HOLD && Close_holder == CAM_HOLD){
+				spin_unlock(&g_AF_SpinLock);
+				g_pstAF_CurDrv->pAF_ResetPos(af_len);
+			}else{
+				spin_unlock(&g_AF_SpinLock);
+			}
+			spin_lock(&g_AF_SpinLock);
+			if(Close_holder == VIB_HOLD){
+				spin_unlock(&g_AF_SpinLock);
+				__pm_relax(&vib_wakelock);
+			}else{
+				spin_unlock(&g_AF_SpinLock);
+			}
+			return 0;
+        }
+#endif
+	else {
+#ifndef CONFIG_AF_NOISE_ELIMINATION
 		spin_lock(&g_AF_SpinLock);
+#endif
 		g_s4AF_Opened = 0;
 		spin_unlock(&g_AF_SpinLock);
 	}
@@ -651,6 +773,16 @@ static int AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 		ois_workqueue = NULL;
 	}
 	/* ------------------------- */
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	spin_lock(&g_AF_SpinLock);
+	if(Close_holder == VIB_HOLD){
+		spin_unlock(&g_AF_SpinLock);
+		__pm_relax(&vib_wakelock);
+	}else{
+		spin_unlock(&g_AF_SpinLock);
+	}
+#endif
 
 	LOG_INF("End\n");
 
@@ -855,12 +987,22 @@ static int __init MAINAF_i2C_init(void)
 		return -ENODEV;
 	}
 
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	memset(&vib_wakelock,0,sizeof(vib_wakelock));
+	vib_wakelock.name = "vibrator_noise_elimination";
+	wakeup_source_add(&vib_wakelock);
+#endif
+
 	return 0;
 }
 
 static void __exit MAINAF_i2C_exit(void)
 {
 	platform_driver_unregister(&g_stAF_Driver);
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	__pm_relax(&vib_wakelock);
+	wakeup_source_remove(&vib_wakelock);
+#endif
 	platform_device_unregister(&g_stAF_device);
 }
 module_init(MAINAF_i2C_init);

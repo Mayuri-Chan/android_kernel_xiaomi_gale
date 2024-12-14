@@ -531,11 +531,11 @@ int mtk_power_misc_psy_event(
 		ret = psy->desc->get_property(
 			psy, POWER_SUPPLY_PROP_TEMP, &val);
 		if (!ret) {
-			tmp = val.intval / 10;
-			if (tmp >= BATTERY_SHUTDOWN_TEMPERATURE) {
+			tmp = val.intval;
+			if (tmp > BATTERY_SHUTDOWN_TEMPERATURE * 10) {
 				bm_err(
-					"battery temperature >= %d,shutdown",
-					tmp);
+					"battery temperature = %d > %d, shutdown",
+					tmp, BATTERY_SHUTDOWN_TEMPERATURE *10);
 
 				wake_up_overheat(&sdc);
 			}

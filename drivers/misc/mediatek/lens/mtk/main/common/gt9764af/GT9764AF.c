@@ -29,14 +29,22 @@
 #define LOG_INF(format, args...)
 #endif
 
-
+#define MOVE_CODE_STEP_MAX 50
+#define WAIT_STABLE_TIME 3  // ms
 static struct i2c_client *g_pstAF_I2Cclient;
 static int *g_pAF_Opened;
 static spinlock_t *g_pAF_SpinLock;
-
+/*
 static unsigned long g_u4AF_INF;
 static unsigned long g_u4AF_MACRO = 1023;
 static unsigned long g_u4CurrPosition;
+*/
+static unsigned long g_u4AF_INF = 0;
+static unsigned long g_u4AF_MACRO = 1023;
+static unsigned long g_u4CurrPosition = 0;
+static unsigned long AF_STARTCODE_UP = 500;
+static unsigned long AF_STARTCODE_DOWN = 350;
+
 #define Min_Pos 0
 #define Max_Pos 1023
 
@@ -146,6 +154,9 @@ static int initAF(void)
 		s4AF_ReadReg(0x00, &Temp);  //ic info
 		LOG_INF("Check HW version: 0x00 is %x\n", Temp);
 		ret = s4AF_WriteReg(0, 0x02, 0x00); //CONTROL
+		s4AF_WriteReg(0, 0x02, 0x02);
+		s4AF_WriteReg(0, 0x06, 0x40);
+		s4AF_WriteReg(0, 0x07, 0x78);
 
 
 
@@ -163,7 +174,7 @@ static int initAF(void)
 static inline int moveAF(unsigned long a_u4Position)
 {
 	int ret = 0;
-
+	LOG_INF("husfa_u4Position %d \n",a_u4Position);
 	if (setPosition((unsigned short)a_u4Position) == 0) {
 		g_u4CurrPosition = a_u4Position;
 		ret = 0;
@@ -192,6 +203,13 @@ static inline int setAFMacro(unsigned long a_u4Position)
 
 	return 0;
 }
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+void GT9764AF_VIB_ResetPos_Main(unsigned long a_u4Position)
+{
+	moveAF(a_u4Position);
+}
+#endif
 
 /* ////////////////////////////////////////////////////////////// */
 long GT9764AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
@@ -234,8 +252,36 @@ long GT9764AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 int GT9764AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 {
 	int Ret = 0;
+	unsigned char Temp;
+	unsigned long m_cur_dac_code = 0;
 
 	LOG_INF("Start\n");
+
+	if (*g_pAF_Opened == 2) {
+		LOG_INF("[zengx] Wait\n");
+		s4AF_ReadReg(0x03, &Temp); //CODE MSB
+		LOG_INF("[zengx] REG03: %x\n", Temp);
+		m_cur_dac_code = Temp;
+		s4AF_ReadReg(0x04, &Temp); //CODE LSB
+		LOG_INF("[zengx] REG04: %x\n", Temp);
+		m_cur_dac_code = m_cur_dac_code * 256 + Temp;
+		g_u4CurrPosition = m_cur_dac_code;
+		if (g_u4CurrPosition > (AF_STARTCODE_UP + MOVE_CODE_STEP_MAX)) {
+			m_cur_dac_code = AF_STARTCODE_UP + MOVE_CODE_STEP_MAX;
+			setPosition((unsigned short)m_cur_dac_code);
+			LOG_INF("[zengx] release 1 dac_target_code = %d\n",
+				m_cur_dac_code);
+			msleep(WAIT_STABLE_TIME);
+			g_u4CurrPosition = m_cur_dac_code;
+		}
+                if (g_u4CurrPosition > (AF_STARTCODE_DOWN + MOVE_CODE_STEP_MAX)) {
+                        m_cur_dac_code = AF_STARTCODE_DOWN + MOVE_CODE_STEP_MAX;
+                        setPosition((unsigned short)m_cur_dac_code);
+                        LOG_INF("[zengx] release 2 dac_target_code = %d\n",
+                                m_cur_dac_code);
+                        msleep(WAIT_STABLE_TIME);
+                }
+	}
 
 	if (*g_pAF_Opened) {
 		LOG_INF("Free\n");
