@@ -132,6 +132,4 @@ static void smartpainfo_mod_exit(void)
 module_init(smartpainfo_mod_init);
 module_exit(smartpainfo_mod_exit);
 
-MODULE_DESCRIPTION("smartpainfo driver");
-MODULE_AUTHOR("wangyongfu <wangyongfu@longcheer.com>");
 MODULE_LICENSE("GPL v2");
