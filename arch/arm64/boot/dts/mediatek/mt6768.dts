@@ -1055,6 +1055,20 @@ page_owner=on loop.max_part=7";
 		interrupts = <GIC_SPI 158 IRQ_TYPE_LEVEL_LOW>;
 	};
 
+	fpsensor_fp_eint:fpsensor_fp_eint{
+		compatible = "mediatek,fpsensor_fp_eint";
+		int-gpios = <&pio 8 0>;
+	};
+
+	fpsensor_finger:fpsensor_finger{
+		compatible = "mediatek,fingerprint","mediatek,goodix-fp";
+		fpc,enable-wakeup;
+	};
+        
+	silead_fp: silead_fp {
+		compatible = "sil,silead_fp";
+	};
+
 	ap_ccif0@10209000 {
 		compatible = "mediatek,ap_ccif0";
 		reg = <0 0x10209000 0 0x1000>;
@@ -1677,9 +1691,13 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 	};
 
 	goodix_fp: fingerprint {
-		compatible = "mediatek,goodix-fp";
+		compatible = "mediatek,goodix-finger";
 	};
-
+	//add for swtp by longcheer begain
+	swtp: swtp {
+		compatible = "mediatek, swtp-eint";
+	};
+	
 	accdet: accdet {
 		compatible = "mediatek,pmic-accdet";
 	};
@@ -2740,9 +2758,6 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		mtk_spk_i2s_out = <3>;
 		mtk_spk_i2s_in = <0>;
 		/* mtk_spk_i2s_mck = <3>; */
-		mediatek,speaker-codec {
-			sound-dai = <&speaker_amp>;
-		};
 	};
 
 	snd_scp_spk: snd_scp_spk {
@@ -3072,6 +3087,10 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 
 	mtkfb: mtkfb@0 {
 		compatible = "mediatek,mtkfb";
+	};
+
+	panel: panel@0 {
+		compatible = "mediatek,panel";
 	};
 
 	dispsys {
@@ -3653,7 +3672,20 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 	flashlight_core: flashlight_core {
 		compatible = "mediatek,flashlight_core";
 	};
-
+        flashlights_ocp8132: flashlights_ocp8132 {
+		compatible = "mediatek,flashlights_ocp8132";
+		decouple = <1>;
+		channel@1 {
+			type = <0>;
+			ct = <0>;
+			part = <0>;
+		};
+		channel@2 {
+			type = <0>;
+			ct = <1>;
+			part = <0>;
+		};
+	};
 	flashlights_mt6370: flashlights_mt6370 {
 		compatible = "mediatek,flashlights_mt6370";
 		decouple = <0>;
@@ -3723,14 +3755,19 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		/* reserved for overlay by odm */
 	};
 
+	simtray: simtray {
+		compatible = "xiaomi,simtray-status";
+		status-gpio =	<&pio 47 0>;
+	};
+
 	memory_ssmr_features: memory-ssmr-features {
 		compatible = "mediatek,memory-ssmr-features";
 		svp-region-based-size = <0 0x10000000>;
 		iris-recognition-size = <0 0x10000000>;
 		2d_fr-size = <0 0>;
-		tui-size = <0 0x4000000>;
+		tui-size = <0 0x0000000>;
 		wfd-size = <0 0x5000000>;
-		prot-region-based-size = <0 0x8000000>;
+		prot-region-based-size = <0 0x0000000>;
 		ta-elf-size = <0 0x1000000>;
 		ta-stack-heap-size = <0 0x6000000>;
 		sdsp-tee-sharedmem-size = <0 0x1000000>;
@@ -3779,8 +3816,8 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 
 	charger: charger {
 		compatible = "mediatek,charger";
-		algorithm_name = "SwitchCharging";
-		/* enable_sw_jeita; */
+		algorithm_name = "SwitchCharging2";
+		enable_sw_jeita;
 		/* enable_pe_plus; */
 		/* enable_pe_2; */
 		/* enable_pe_3; */
@@ -3792,8 +3829,8 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		bootmode = <&chosen>;
 
 		/* common */
-		battery_cv = <4350000>;
-		max_charger_voltage = <6500000>;
+		battery_cv = <4450000>;
+		max_charger_voltage = <10500000>;
 		min_charger_voltage = <4600000>;
 
 		/* dynamic mivr */
@@ -3804,31 +3841,39 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		/* charging current */
 		usb_charger_current_suspend = <0>;
 		usb_charger_current_unconfigured = <70000>;
-		usb_charger_current_configured = <500000>;
-		usb_charger_current = <500000>;
+		usb_charger_current_configured = <550000>;
+		usb_charger_current = <550000>;
 		ac_charger_current = <2050000>;
-		ac_charger_input_current = <3200000>;
-		non_std_ac_charger_current = <500000>;
-		charging_host_charger_current = <1500000>;
+		ac_charger_input_current = <2000000>;
+		non_std_ac_charger_current = <1000000>;
+		charging_host_charger_current = <1550000>;
 		apple_1_0a_charger_current = <650000>;
 		apple_2_1a_charger_current = <800000>;
 		ta_ac_charger_current = <3000000>;
 
 		/* sw jeita */
-		jeita_temp_above_t4_cv = <4240000>;
-		jeita_temp_t3_to_t4_cv = <4240000>;
-		jeita_temp_t2_to_t3_cv = <4340000>;
-		jeita_temp_t1_to_t2_cv = <4240000>;
-		jeita_temp_t0_to_t1_cv = <4040000>;
-		jeita_temp_below_t0_cv = <4040000>;
-		temp_t4_thres = <50>;
-		temp_t4_thres_minus_x_degree = <47>;
+		jeita_temp_above_t4_cv = <4100000>;
+		jeita_temp_t3_to_t4_cv = <4100000>;
+		jeita_temp_t2_to_t3_cv = <4450000>;
+		jeita_temp_t1p5_to_t2_cv = <4450000>;
+		jeita_temp_t1_to_t1p5_cv = <4450000>;
+		jeita_temp_t0_to_t1_cv = <4450000>;
+		jeita_temp_below_t0_cv = <4450000>;
+		jeita_temp_t3_to_t4_cc = <2460000>;
+		jeita_temp_t2_to_t3_cc = <3600000>;
+		jeita_temp_t1p5_to_t2_cc = <2460000>;
+		jeita_temp_t1_to_t1p5_cc = <1470000>;
+		jeita_temp_t0_to_t1_cc = <490000>;
+		temp_t4_thres = <55>;
+		temp_t4_thres_minus_x_degree = <52>;
 		temp_t3_thres = <45>;
-		temp_t3_thres_minus_x_degree = <39>;
-		temp_t2_thres = <10>;
-		temp_t2_thres_plus_x_degree = <16>;
-		temp_t1_thres = <0>;
-		temp_t1_thres_plus_x_degree = <6>;
+		temp_t3_thres_minus_x_degree = <43>;
+		temp_t2_thres = <20>;
+		temp_t2_thres_plus_x_degree = <18>;
+		temp_t1p5_thres = <15>;
+		temp_t1p5_thres_plus_x_degree = <13>;
+		temp_t1_thres = <10>;
+		temp_t1_thres_plus_x_degree = <8>;
 		temp_t0_thres = <0>;
 		temp_t0_thres_plus_x_degree = <0>;
 		temp_neg_10_thres = <0>;
@@ -3891,9 +3936,9 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 
 		/* PD */
 		pd_vbus_low_bound = <5000000>;
-		pd_vbus_upper_bound = <5000000>;
+		pd_vbus_upper_bound = <9000000>;
 		pd_ichg_level_threshold = <1000000>; /* uA */
-		pd_stop_battery_soc = <80>;
+		pd_stop_battery_soc = <90>;
 
 		ibus_err = <14>;
 		vsys_watt = <5000000>;
@@ -3942,6 +3987,12 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		compatible = "goodix,touch";
 	};
 
+	xiaomi_touch: xiaomi_touch {
+		status = "ok";
+		compatible = "xiaomi-touch";
+		touch,name = "xiaomi-touch";
+	};
+
 	nfc:nfc {
 		compatible = "mediatek,nfc-gpio-v2";
 		gpio-rst = <159>;
@@ -3966,15 +4017,6 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 	};
 
 	md1_sim2_hot_plug_eint: md1_sim2_hot_plug_eint {
-	};
-};
-
-&i2c7 {
-	speaker_amp: speaker_amp@34 {
-		compatible = "mediatek,speaker_amp";
-		#sound-dai-cells = <0>;
-		reg = <0x34>;
-		status = "okay";
 	};
 };
 
@@ -4172,6 +4214,64 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 	};
 };
 
+/*QVGA's begining add by hanlina@longcheer.com*/
+&pio{
+        camera_pins_gc6133c_mclk_on: camera_pins_gc6133c_mclk_on {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO111__FUNC_CMMCLK3>;
+                };
+        };
+        camera_pins_gc6133c_mclk_off: camera_pins_gc6133c_mclk_off {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO111__FUNC_GPIO111>;
+                };
+        };
+};
+
+/*QVGA's begining add by liushuangshuang1@longcheer.com*/
+&pio{
+        camera_pins_sc080cs_mclk_on: camera_pins_sc080cs_mclk_on {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO111__FUNC_CMMCLK3>;
+                };
+        };
+        camera_pins_sc080cs_mclk_off: camera_pins_sc080cs_mclk_off {
+                pins_cmd_dat {
+                        pinmux = <PINMUX_GPIO111__FUNC_GPIO111>;
+                };
+        };
+};
+
+&i2c4 {
+        gc6133c@40 {
+        compatible = "gc,gc6133c_yuv";
+        reg = <0x40>;
+        reset-gpio = <&pio 112 0x0>;
+        pinctrl-names = "gc6133c_mclk_on",
+                        "gc6133c_mclk_off";
+        pinctrl-0 = <&camera_pins_gc6133c_mclk_on>;
+        pinctrl-1 = <&camera_pins_gc6133c_mclk_off>;
+        vcama-supply = <&mt_pmic_vcama1_ldo_reg>;
+        vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+        vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+        status = "okay";
+      };
+        sc080cs@36 {
+        compatible = "sc,sc080cs_yuv";
+        reg = <0x36>;
+        reset-gpio = <&pio 112 0x0>;
+        pinctrl-names = "sc080cs_mclk_on",
+                        "sc080cs_mclk_off";
+        pinctrl-0 = <&camera_pins_sc080cs_mclk_on>;
+        pinctrl-1 = <&camera_pins_sc080cs_mclk_off>;
+        vcamio-supply = <&mt_pmic_vcamio_ldo_reg>;
+        vcama-supply = <&mt_pmic_vcama1_ldo_reg>;
+        vcamd-supply = <&mt_pmic_vcamd_ldo_reg>;
+        status = "okay";
+      };
+      /*QVGA's ending add by liushuangshuang1@longcheer.com*/
+};
+/*QVGA's ending add by hanlina@longcheer.com*/
 
 #include "mediatek/mt6358.dtsi"
 #include "mediatek/cust_mt6768_msdc.dtsi"
