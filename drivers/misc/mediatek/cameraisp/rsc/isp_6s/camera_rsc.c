@@ -2089,6 +2089,12 @@ static long RSC_ioctl(struct file *pFile, unsigned int Cmd, unsigned long Param)
 					spin_unlock_irqrestore(
 					&(RSCInfo.SpinLockIrq[
 					RSC_IRQ_TYPE_INT_RSC_ST]), flags);
+					if (enqueNum >
+					_SUPPORT_MAX_RSC_FRAME_REQUEST_) {
+						LOG_ERR(
+						"RSC Enque Num is bigger than enqueNum:%d\n",
+						     enqueNum);
+					}
 					LOG_DBG(
 					"RSC_ENQNUE_NUM:%d\n", enqueNum);
 				} else {

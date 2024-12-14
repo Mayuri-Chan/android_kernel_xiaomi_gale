@@ -564,8 +564,6 @@ static int mtu3_gadget_pullup(struct usb_gadget *gadget, int is_on)
 	dev_dbg(mtu->dev, "%s (%s) for %sactive device\n", __func__,
 		is_on ? "on" : "off", mtu->is_active ? "" : "in");
 
-	disable_irq(mtu->irq);
-
 	/* we'd rather not pullup unless the device is active. */
 	spin_lock_irqsave(&mtu->lock, flags);
 
@@ -583,8 +581,6 @@ static int mtu3_gadget_pullup(struct usb_gadget *gadget, int is_on)
 	}
 
 	spin_unlock_irqrestore(&mtu->lock, flags);
-
-	enable_irq(mtu->irq);
 
 	if (!mtu->is_gadget_ready && is_on)
 		mtu3_gadget_set_ready(gadget);

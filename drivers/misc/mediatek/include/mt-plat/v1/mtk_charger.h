@@ -93,6 +93,9 @@ extern int charger_manager_enable_power_path(
 	struct charger_consumer *consumer,
 	int idx,
 	bool en);
+extern int charger_manager_set_input_suspend(int suspend);
+extern int charger_manager_is_input_suspend(void);
+
 extern int charger_manager_force_disable_power_path(
 	struct charger_consumer *consumer,
 	int idx,

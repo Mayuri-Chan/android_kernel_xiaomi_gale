@@ -45,7 +45,6 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
-
 #include <linux/uaccess.h>
 
 #include "mtk_mmc_block.h"
@@ -3206,6 +3205,7 @@ static int mmc_blk_probe(struct mmc_card *card)
 		mmc_boot_type = 1;
 	else
 		mmc_boot_type = 2;
+
 
 #ifdef CONFIG_MMC_SD_IOSCHED
 	if (card->type == MMC_TYPE_SD

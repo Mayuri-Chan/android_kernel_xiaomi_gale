@@ -28,7 +28,12 @@ void set_esd_check_mode(unsigned int mode);
 int do_lcm_vdo_lp_read(struct ddp_lcm_read_cmd_table *read_table);
 int do_lcm_vdo_lp_write(struct ddp_lcm_write_cmd_table *write_table,
 			unsigned int count);
+int do_lcm_vdo_lp_write_2(struct ddp_lcm_write_cmd_table *write_table,
+			unsigned int count);
+int primary_display_set_panel_param(int param);
 
-
+extern int get_last_backlight_level(void);
+extern int get_current_backlight_level(void);
+extern int backlight_brightness_set(int level);
 
 #endif

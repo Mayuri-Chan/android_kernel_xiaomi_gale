@@ -71,7 +71,7 @@ DECLARE_SEMA(pm_sema, 0);
 DECLARE_COMPLETION(boot_decryto_lock);
 
 #ifndef CONFIG_MICROTRUST_DYNAMIC_CORE
-#define TZ_PREFER_BIND_CORE (6)
+#define TZ_PREFER_BIND_CORE (7)
 #endif
 
 #define TEEI_RT_POLICY			(0x01)

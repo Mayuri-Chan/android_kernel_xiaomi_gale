@@ -180,7 +180,7 @@ int update_eas_uclamp_min(int kicker, int cgroup_idx, int value)
 #endif
 EXPORT_SYMBOL(update_eas_uclamp_min);
 
-#ifdef CONFIG_SCHED_TUNE
+#if defined(CONFIG_SCHED_TUNE) && defined(CONFIG_MTK_FPSGO_V3)
 int update_prefer_idle_value(int kicker, int cgroup_idx, int value)
 {
 	if (cgroup_idx < 0 || cgroup_idx >= NR_CGROUP) {
@@ -577,7 +577,7 @@ static ssize_t perfmgr_debug_prefer_idle_proc_write(
 
 	if (cgroup >= 0 && cgroup < NR_CGROUP) {
 		debug_prefer_idle[cgroup] = data;
-#ifdef CONFIG_SCHED_TUNE
+#if defined(CONFIG_SCHED_TUNE) && defined(CONFIG_MTK_FPSGO_V3)
 		if (data == 1)
 			prefer_idle_for_perf_idx(cgroup, 1);
 		else if (data == 0)
@@ -1278,7 +1278,7 @@ int uclamp_ctrl_init(struct proc_dir_entry *parent)
 		}
 	}
 
-#ifdef CONFIG_SCHED_TUNE
+#if defined(CONFIG_SCHED_TUNE) && defined(CONFIG_MTK_FPSGO_V3)
 	/* boost value */
 	for (i = 0; i < NR_CGROUP; i++) {
 		prefer_idle[i] = 0;

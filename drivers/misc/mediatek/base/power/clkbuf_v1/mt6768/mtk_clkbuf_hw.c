@@ -167,6 +167,18 @@ static void pmic_clk_buf_ctrl_ext(short on)
 				      PMIC_XO_EXTBUF7_EN_M_SHIFT);
 }
 
+static void pmic_clk_buf_ctrl_nfc(short on)
+  {
+	if (on)
+		pmic_config_interface(PMIC_DCXO_CW00_SET_ADDR, 0x1,
+				      PMIC_XO_EXTBUF3_EN_M_MASK,
+				      PMIC_XO_EXTBUF3_EN_M_SHIFT);
+	else
+		pmic_config_interface(PMIC_DCXO_CW00_CLR_ADDR, 0x1,
+				      PMIC_XO_EXTBUF3_EN_M_MASK,
+				      PMIC_XO_EXTBUF3_EN_M_SHIFT);
+}
+
 void clk_buf_ctrl_bblpm_hw(short on)
 {
 	u32 bblpm_sel = 0, aac_sta = 0, i = 0;
@@ -732,6 +744,8 @@ bool clk_buf_ctrl(enum clk_buf_id id, bool onoff)
 				__func__, id);
 			break;
 		}
+                pr_info("%s: id=%d isn't xxxxxxxxxxxxxxxxxxxxx by SW\n",__func__, id);            
+                pmic_clk_buf_ctrl_nfc(onoff);
 		pmic_clk_buf_swctrl[XO_NFC] = onoff;
 		break;
 	case CLK_BUF_RF:
@@ -1615,7 +1629,7 @@ void clk_buf_post_init(void)
 	CLK_BUF7_STATUS = CLOCK_BUFFER_DISABLE;
 #endif
 #endif
-#ifndef CONFIG_NFC_CHIP_SUPPORT
+#if 0
 	/* no need to use XO_NFC if no NFC */
 	clk_buf_ctrl_internal(CLK_BUF_NFC, CLK_BUF_FORCE_OFF);
 	CLK_BUF3_STATUS = CLOCK_BUFFER_DISABLE;

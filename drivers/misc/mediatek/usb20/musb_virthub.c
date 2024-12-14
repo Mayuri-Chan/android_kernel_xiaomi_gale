@@ -116,6 +116,9 @@ static void musb_port_reset(struct musb *musb, bool do_reset)
 	if (!is_host_active(musb))
 		return;
 
+	if (!musb->is_active)
+		return;
+
 	/* NOTE:  caller guarantees it will turn off the reset when
 	 * the appropriate amount of time has passed
 	 */

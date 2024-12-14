@@ -34,6 +34,16 @@ config MTK_LM_MODE
 	  more than 4GB DRAM mapping.
 	  If you are not sure about this, set n
 
+config GC_GC6133C_I
+        bool "camera QVGA module 1"
+        help
+          Used for camera QVGA module 1
+
+config SC_SC080CS_II
+        bool "camera QVGA module 2"
+        help
+          Used for camera QVGA module 2
+
 menu "Storage"
 source "drivers/misc/mediatek/blocktag/Kconfig"
 source "drivers/misc/mediatek/pidmap/Kconfig"
@@ -561,4 +571,5 @@ menu "Misc"
 source "drivers/misc/mediatek/ext_gic/Kconfig"
 source "drivers/misc/mediatek/cirq/Kconfig"
 source "drivers/misc/mediatek/timer/Kconfig"
+source "drivers/misc/mediatek/simtray/Kconfig
 endmenu # Misc

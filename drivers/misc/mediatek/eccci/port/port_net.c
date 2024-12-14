@@ -427,8 +427,6 @@ int mtk_ccci_handle_port_list(int status, char *name)
 	struct sk_buff *skb = NULL;
 
 	channel = mtk_ccci_request_port(name);
-	if (channel < 0)
-		return -1;
 	ret = find_port_by_channel(channel, &port);
 	if (ret)
 		return -1;
@@ -530,7 +528,7 @@ static int port_net_recv_skb(struct port_t *port, struct sk_buff *skb)
 #ifdef PORT_NET_TRACE
 	rx_cb_time = sched_clock() - rx_cb_time;
 	total_time = sched_clock() - total_time;
-	trace_port_net_rx(port->md_id, port->rxq_index, port->rx_ch,
+	trace_port_net_rx(port->md_id, PORT_RXQ_INDEX(port), port->rx_ch,
 		(unsigned int)rx_cb_time, (unsigned int)total_time);
 #endif
 	return 0;

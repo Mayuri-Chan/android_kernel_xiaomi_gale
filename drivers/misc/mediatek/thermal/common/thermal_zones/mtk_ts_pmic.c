@@ -57,8 +57,8 @@ static int kernelmode;
 
 static int g_THERMAL_TRIP[10] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static int num_trip;
-static char g_bind0[20] = { 0 };
+static int num_trip = 1;
+static char g_bind0[20] = "mtktspmic-sysrst";
 static char g_bind1[20] = { 0 };
 static char g_bind2[20] = { 0 };
 static char g_bind3[20] = { 0 };

@@ -376,7 +376,7 @@ int mtk_dbgtop_dfd_timeout(int value)
 	tmp |= value | MTK_DBGTOP_LATCH_CTL2_KEY;
 	mt_reg_sync_writel(tmp, MTK_DBGTOP_LATCH_CTL2);
 
-	pr_debug("%s: MTK_DBGTOP_LATCH_CTL2(0x%x)\n", __func__,
+	pr_info("%s: MTK_DBGTOP_LATCH_CTL2(0x%x)\n", __func__,
 		readl(IOMEM(MTK_DBGTOP_LATCH_CTL2)));
 
 	return 0;

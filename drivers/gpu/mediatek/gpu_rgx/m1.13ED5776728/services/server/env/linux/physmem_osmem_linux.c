@@ -2993,6 +2993,7 @@ static IMG_DEV_PHYADDR GetOffsetPA(const PMR_OSPAGEARRAY_DATA *psOSPageArrayData
 	IMG_UINT32 ui32InPageOffset = ui32Offset - (ui32PageIndex << ui32Log2AllocPageSize);
 	IMG_DEV_PHYADDR sPA;
 
+	PVR_ASSERT(ui32PageIndex < psOSPageArrayData->uiTotalNumOSPages);
 	PVR_ASSERT(ui32InPageOffset < (1U << ui32Log2AllocPageSize));
 
 	sPA.uiAddr = page_to_phys(psOSPageArrayData->pagearray[ui32PageIndex]);

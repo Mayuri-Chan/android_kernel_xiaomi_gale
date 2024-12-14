@@ -309,6 +309,15 @@ struct fb_post_video_buffer {
 	unsigned int width, height;
 };
 
+struct fb_lcd_gale_para {
+	int white_point_x;
+	int white_point_y;
+	int white_point_l;
+	u32 white_point_r;
+	u32 white_point_g;
+	u32 white_point_b;
+};
+
 #if defined(CONFIG_MACH_MT6735) || defined(CONFIG_MACH_MT6735M)\
 	|| defined(CONFIG_MACH_MT6753) || defined(CONFIG_MACH_MT8167)
 extern unsigned int EnableVSyncLog;
@@ -390,6 +399,8 @@ struct mtkfb_device {
 	int timeline_max;
 	struct list_head pending_configs;
 	struct ion_client *ion_client;
+	atomic_t resume_pending;
+	wait_queue_head_t resume_wait_q;
 };
 
 #endif				/* __KERNEL__ */

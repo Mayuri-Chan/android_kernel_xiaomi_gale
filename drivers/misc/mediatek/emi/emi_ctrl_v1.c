@@ -269,6 +269,10 @@ unsigned int get_dram_mr(unsigned int index)
 	switch (index) {
 	case 5:
 		return ((emi_info.dram_type >> 24) & 0xFF);
+	case 6:
+		return ((emi_info.dram_type >> 16) & 0xFF);
+	case 7:
+		return ((emi_info.dram_type >> 8) & 0xFF);
 	default:
 		return 0;
 	}
