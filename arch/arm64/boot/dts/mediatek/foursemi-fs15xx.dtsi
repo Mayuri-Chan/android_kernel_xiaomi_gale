@@ -1,0 +1,60 @@
+/**
+ * Copyright (C) Fourier Semiconductor Inc. 2016-2020. All rights reserved.
+ * 2020-12-29 File created.
+ */
+
+&odm {
+	fs15xx: audio_fs15xx {
+		compatible = "foursemi,fs15xx";
+		status = "okay";
+	};
+};
+
+&pio {
+	fs15xx_id_default: fs15xx_id_default {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO150__FUNC_GPIO150>;
+			slew-rate = <0>;
+			bias-disable;
+			output-low;
+		};
+	};
+	fs15xx_id_active: fs15xx_id_active {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO150__FUNC_GPIO150>;
+			slew-rate = <1>;
+			output-high;
+		};
+	};
+	fs15xx_cmd_default: fs15xx_cmd_default {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO160__FUNC_GPIO160>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+	fs15xx_mod_default: fs15xx_mod_default {
+		pins_cmd_dat {
+			pinmux = <PINMUX_GPIO153__FUNC_GPIO153>;
+			slew-rate = <1>;
+			output-low;
+		};
+	};
+};
+
+/*********** FS151X/FS1559 ************/
+&fs15xx {
+	fsm,dev-type = <1>; // 0:spc1910, 1:fs15xx
+	fsm,id-gpio  = <&pio 150 0>;
+	fsm,cmd-gpio = <&pio 160 0>;
+	fsm,mod-gpio = <&pio 153 0>;
+	pinctrl-names = "fs15xx_id_default",
+			"fs15xx_id_active",
+			"fs15xx_cmd_default",
+			"fs15xx_mod_default";
+	pinctrl-0 = <&fs15xx_id_default>;
+	pinctrl-1 = <&fs15xx_id_active>;
+	pinctrl-2 = <&fs15xx_cmd_default>;
+	pinctrl-3 = <&fs15xx_mod_default>;
+	status = "okay";
+};
