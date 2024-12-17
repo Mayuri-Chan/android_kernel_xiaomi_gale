@@ -266,7 +266,7 @@ static void sc202cs_sn_read(void)
 		//pr_info("zengx %s addr = 0x%4x sn_back2[%d]=0x%2x\n",__func__, 0x1F92 + i, i, sn_back2[i]);
 	}
 }
-static void set_dummy()
+static void set_dummy(void)
 {
    
 	LOG_INF("dummyline = %d, dummypixels = %d \n", imgsensor.dummy_line, imgsensor.dummy_pixel);
@@ -279,7 +279,7 @@ static void set_dummy()
 //  end
 }    /*    set_dummy  */
 
-static kal_uint32 return_sensor_id()
+static kal_uint32 return_sensor_id(void)
 {
 	return ((read_cmos_sensor(0x3107) << 8) | read_cmos_sensor(0x3108)); //0xeb15
 }
@@ -810,13 +810,13 @@ static void normal_video_setting(kal_uint16 currefps)
 	preview_setting();
 }
 
-static void hs_video_setting()
+static void hs_video_setting(void)
 {
 	LOG_INF("E! VGA 120fps\n");    
 
 }
 
-static void slim_video_setting()
+static void slim_video_setting(void)
 {
 	LOG_INF("E! HD 30fps\n");
 

@@ -3466,7 +3466,7 @@ _out:
 }
 
 int charger_manager_pd_is_online(void);
-static void lc_usb_psy_pd_inform() {
+static void lc_usb_psy_pd_inform(void) {
 	static struct power_supply *usb_psy = NULL;
 	if(!usb_psy) {
 		usb_psy = power_supply_get_by_name("usb");
