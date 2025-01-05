@@ -17,6 +17,16 @@
 #include "../../codecs/mt6358.h"
 #include "../common/mtk-sp-spk-amp.h"
 
+#if defined(CONFIG_SND_SOC_FS15XX)
+#include "../../codecs/fs15xx/fs15xx.h" // Need to check
+// extern int fs15xx_ext_amp_set(int enable);
+#endif
+
+
+#ifdef CONFIG_LCT_AUDIO_INFO
+extern int lct_audio_info_create_sysfs(void);
+#endif
+
 /*
  * if need additional control for the ext spk amp that is connected
  * after Lineout Buffer / HP Buffer on the codec, put the control in
@@ -82,9 +92,15 @@ static int mt6768_mt6358_spk_amp_event(struct snd_soc_dapm_widget *w,
 	switch (event) {
 	case SND_SOC_DAPM_POST_PMU:
 		/* spk amp on control */
+		#if defined(CONFIG_SND_SOC_FS15XX)
+		ext_amp_poweron(1);
+		#endif
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
 		/* spk amp off control */
+		#if defined(CONFIG_SND_SOC_FS15XX)
+		ext_amp_poweron(0);
+		#endif
 		break;
 	default:
 		break;
@@ -799,7 +815,9 @@ static int mt6768_mt6358_dev_probe(struct platform_device *pdev)
 	int ret = 0;
 	int i = 0;
 	int spk_out_dai_link_idx, spk_iv_dai_link_idx = 0;
-
+#ifdef CONFIG_LCT_AUDIO_INFO
+  	lct_audio_info_create_sysfs();
+#endif
 	ret = mtk_spk_update_info(card, pdev,
 				  &spk_out_dai_link_idx, &spk_iv_dai_link_idx,
 				  &mt6768_mt6358_i2s_ops);
