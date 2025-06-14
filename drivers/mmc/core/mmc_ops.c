@@ -26,7 +26,8 @@
 #define MMC_OPS_TIMEOUT_MS		(10 * 60 * 1000) /* 10min*/
 #define MMC_BKOPS_TIMEOUT_MS		(120 * 1000) /* 120s */
 #define MMC_CACHE_FLUSH_TIMEOUT_MS	(30 * 1000) /* 30s */
-#define DAT_TIMEOUT			(1000    * 5) /* 1000ms x5 */
+#define CMD_TIMEOUT         (HZ/10 * 5)	/* 100ms x5 */
+#define DAT_TIMEOUT         (HZ    * 5)	/* 1000ms x5 */
 
 static const u8 tuning_blk_pattern_4bit[] = {
 	0xff, 0x0f, 0xff, 0x00, 0xff, 0xcc, 0xc3, 0xcc,
@@ -459,6 +460,10 @@ int mmc_poll_for_busy(struct mmc_card *card, unsigned int timeout_ms,
 	bool expired = false;
 	bool busy = false;
 
+	if (!timeout_ms)
+		timeout_ms = MMC_OPS_TIMEOUT_MS;
+	else if (timeout_ms < DAT_TIMEOUT)
+		timeout_ms = DAT_TIMEOUT;
 	/*
 	 * In cases when not allowed to poll by using CMD13 or because we aren't
 	 * capable of polling by using ->card_busy(), then rely on waiting the
@@ -547,7 +552,7 @@ int __mmc_switch(struct mmc_card *card, u8 set, u8 index, u8 value,
 	 * which also means they are on their own when it comes to deal with the
 	 * busy timeout.
 	 */
-	if (!(host->caps & MMC_CAP_NEED_RSP_BUSY) &&
+	if (!(host->caps & MMC_CAP_NEED_RSP_BUSY) && timeout_ms &&
 	    host->max_busy_timeout && (timeout_ms > host->max_busy_timeout))
 		use_r1b_resp = false;
 
