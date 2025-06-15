@@ -1599,6 +1599,9 @@ static void u2_phy_instance_set_mode(struct mtk_tphy *tphy,
 				 &instance->eq_leq_shift);
 		device_property_read_u32(dev, "mediatek,rev4",
 				 &instance->rev4);
+		instance->eye_vrt = 7;
+		instance->eye_term = 7;
+		instance->eye_rev6 = 2;
 		u2_phy_props_set(tphy, instance);
 		break;
 	case PHY_MODE_USB_HOST:
@@ -1627,6 +1630,10 @@ static void u2_phy_instance_set_mode(struct mtk_tphy *tphy,
 				 &instance->eq_leq_shift);
 		device_property_read_u32(dev, "mediatek,rev4",
 				 &instance->rev4);
+		instance->eye_vrt = 5;
+		instance->eye_term = 5;
+		instance->eye_rev6 = 3;
+		instance->eye_disc = 10;
 		u2_phy_props_set(tphy, instance);
 		break;
 	case PHY_MODE_USB_OTG:
