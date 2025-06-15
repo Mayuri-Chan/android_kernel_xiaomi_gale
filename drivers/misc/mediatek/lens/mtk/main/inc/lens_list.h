@@ -244,6 +244,11 @@ extern int GT9764AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
 				int *pAF_Opened);
 extern int GT9764AF_GetFileName(unsigned char *pFileName);
 
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+#define GT9764AF_VIB_ResetPos GT9764AF_VIB_ResetPos_Main
+extern void GT9764AF_VIB_ResetPos_Main(unsigned long a_u4Position);
+#endif
+
 #define LC898122AF_SetI2Cclient LC898122AF_SetI2Cclient_Main
 #define LC898122AF_Ioctl LC898122AF_Ioctl_Main
 #define LC898122AF_Release LC898122AF_Release_Main
@@ -386,4 +391,23 @@ extern int GT9772AF_Release(struct inode *a_pstInode, struct file *a_pstFile);
 extern int GT9772AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
 				int *pAF_Opened);
 extern int GT9772AF_GetFileName(unsigned char *pFileName);
+
+#define PD9302AF_SetI2Cclient PD9302AF_SetI2Cclient_Main
+#define PD9302AF_Ioctl PD9302AF_Ioctl_Main
+#define PD9302AF_Release PD9302AF_Release_Main
+#define PD9302AF_PowerDown PD9302AF_PowerDown_Main
+#define PD9302AF_GetFileName PD9302AF_GetFileName_Main
+extern int PD9302AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+				spinlock_t *pAF_SpinLock, int *pAF_Opened);
+extern long PD9302AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+				unsigned long a_u4Param);
+extern int PD9302AF_Release(struct inode *a_pstInode, struct file *a_pstFile);
+extern int PD9302AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
+				int *pAF_Opened);
+extern int PD9302AF_GetFileName(unsigned char *pFileName);
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+#define PD9302AF_VIB_ResetPos PD9302AF_VIB_ResetPos_Main
+extern void PD9302AF_VIB_ResetPos_Main(unsigned long a_u4Position);
+#endif
 #endif

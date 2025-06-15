@@ -5,7 +5,7 @@
 
 
 /*
- * GT9764AF voice coil motor driver
+ * PD9302AF voice coil motor driver
  *
  *
  */
@@ -18,7 +18,7 @@
 
 #include "lens_info.h"
 
-#define AF_DRVNAME "GT9764AF_DRV"
+#define AF_DRVNAME "PD9302AF_DRV"
 #define AF_I2C_SLAVE_ADDR 0x18
 
 #define AF_DEBUG
@@ -152,10 +152,11 @@ static int initAF(void)
 		unsigned char Temp;
 
 		s4AF_ReadReg(0x00, &Temp);  //ic info
+		mdelay(1);
 		LOG_INF("Check HW version: 0x00 is %x\n", Temp);
 		ret = s4AF_WriteReg(0, 0x02, 0x00); //CONTROL
 		s4AF_WriteReg(0, 0x02, 0x02);
-		s4AF_WriteReg(0, 0x06, 0x40);
+		s4AF_WriteReg(0, 0x06, 0x80);
 		s4AF_WriteReg(0, 0x07, 0x78);
 
 
@@ -174,7 +175,7 @@ static int initAF(void)
 static inline int moveAF(unsigned long a_u4Position)
 {
 	int ret = 0;
-	LOG_INF("husfa_u4Position %d \n",a_u4Position);
+	LOG_INF("PD9302AF a_u4Position:%d\n",a_u4Position);
 	if (setPosition((unsigned short)a_u4Position) == 0) {
 		g_u4CurrPosition = a_u4Position;
 		ret = 0;
@@ -205,14 +206,14 @@ static inline int setAFMacro(unsigned long a_u4Position)
 }
 
 #ifdef CONFIG_AF_NOISE_ELIMINATION
-void GT9764AF_VIB_ResetPos_Main(unsigned long a_u4Position)
+void PD9302AF_VIB_ResetPos_Main(unsigned long a_u4Position)
 {
 	moveAF(a_u4Position);
 }
 #endif
 
 /* ////////////////////////////////////////////////////////////// */
-long GT9764AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
+long PD9302AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 		      unsigned long a_u4Param)
 {
 	long i4RetValue = 0;
@@ -249,7 +250,7 @@ long GT9764AF_Ioctl(struct file *a_pstFile, unsigned int a_u4Command,
 /* 2.Shut down the device on last close. */
 /* 3.Only called once on last time. */
 /* Q1 : Try release multiple times. */
-int GT9764AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
+int PD9302AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 {
 	int Ret = 0;
 	unsigned char Temp;
@@ -296,7 +297,7 @@ int GT9764AF_Release(struct inode *a_pstInode, struct file *a_pstFile)
 	return Ret;
 }
 
-int GT9764AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
+int PD9302AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
 			int *pAF_Opened)
 {
 	g_pstAF_I2Cclient = pstAF_I2Cclient;
@@ -312,7 +313,7 @@ int GT9764AF_PowerDown(struct i2c_client *pstAF_I2Cclient,
 	return 0;
 }
 
-int GT9764AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
+int PD9302AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
 			    spinlock_t *pAF_SpinLock, int *pAF_Opened)
 {
 	g_pstAF_I2Cclient = pstAF_I2Cclient;
@@ -324,7 +325,7 @@ int GT9764AF_SetI2Cclient(struct i2c_client *pstAF_I2Cclient,
 	return 1;
 }
 
-int GT9764AF_GetFileName(unsigned char *pFileName)
+int PD9302AF_GetFileName(unsigned char *pFileName)
 {
 	#if SUPPORT_GETTING_LENS_FOLDER_NAME
 	char FilePath[256];

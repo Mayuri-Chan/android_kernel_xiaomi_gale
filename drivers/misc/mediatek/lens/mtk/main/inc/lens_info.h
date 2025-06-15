@@ -67,6 +67,7 @@
 #define AFDRV_DW9718TAF "DW9718TAF"
 #define AFDRV_GT9772AF "GT9772AF"
 #define AFDRV_GT9768AF "GT9768AF"
+#define AFDRV_PD9302AF "PD9302AF"
 
 #define CONVERT_CCU_TIMESTAMP 0x1000
 
@@ -142,7 +143,20 @@ struct stAF_DrvList {
 	int (*pAF_Release)(struct inode *a_pstInode, struct file *a_pstFile);
 	int (*pAF_GetFileName)(unsigned char *pFileName);
 	int (*pAF_OisGetHallPos)(int *PosX, int *PosY);
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+	void (*pAF_ResetPos)(unsigned long Pos);
+#endif
 };
+
+#ifdef CONFIG_AF_NOISE_ELIMINATION
+#define AFIOC_T_SETOPENER _IOW(AF_MAGIC, 21, u32)
+#define AFIOC_T_SETCLOSEER _IOW(AF_MAGIC, 22, u32)
+#define AFIOC_T_SETVCMPOS _IOW(AF_MAGIC,23, u32)
+#define NO_HOLD 0b00
+#define CAM_HOLD 0b01
+#define VIB_HOLD 0b10
+#define ALL_HOLD 0b11
+#endif
 
 #define I2CBUF_MAXSIZE 10
 
