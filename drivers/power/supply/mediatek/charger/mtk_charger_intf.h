@@ -17,7 +17,8 @@
 #include <mt-plat/v1/charger_type.h>
 #include <mt-plat/v1/mtk_charger.h>
 #include <mt-plat/v1/mtk_battery.h>
-
+#include <linux/kthread.h>
+#include <linux/power_supply.h>
 #include <mtk_gauge_time_service.h>
 
 #include <mt-plat/v1/charger_class.h>
@@ -93,6 +94,12 @@ enum {
 	EVENT_RECHARGE,
 };
 
+/* HVDCP type */
+enum hvdcp_status{
+	HVDCP_NULL,
+	HVDCP,
+	HVDCP_3,
+};
 /* charger_dev notify charger_manager */
 enum {
 	CHARGER_DEV_NOTIFY_VBUS_OVP,
@@ -120,7 +127,8 @@ enum {
 enum sw_jeita_state_enum {
 	TEMP_BELOW_T0 = 0,
 	TEMP_T0_TO_T1,
-	TEMP_T1_TO_T2,
+	TEMP_T1_TO_T1P5,
+	TEMP_T1P5_TO_T2,
 	TEMP_T2_TO_T3,
 	TEMP_T3_TO_T4,
 	TEMP_ABOVE_T4
@@ -130,6 +138,7 @@ struct sw_jeita_data {
 	int sm;
 	int pre_sm;
 	int cv;
+	int cc;
 	bool charging;
 	bool error_recovery_flag;
 };
@@ -179,15 +188,23 @@ struct charger_custom_data {
 	int jeita_temp_above_t4_cv;
 	int jeita_temp_t3_to_t4_cv;
 	int jeita_temp_t2_to_t3_cv;
-	int jeita_temp_t1_to_t2_cv;
+	int jeita_temp_t1p5_to_t2_cv;
+	int jeita_temp_t1_to_t1p5_cv;
 	int jeita_temp_t0_to_t1_cv;
 	int jeita_temp_below_t0_cv;
+	int jeita_temp_t3_to_t4_cc;
+	int jeita_temp_t2_to_t3_cc;
+	int jeita_temp_t1p5_to_t2_cc;
+	int jeita_temp_t1_to_t1p5_cc;
+	int jeita_temp_t0_to_t1_cc;
 	int temp_t4_thres;
 	int temp_t4_thres_minus_x_degree;
 	int temp_t3_thres;
 	int temp_t3_thres_minus_x_degree;
 	int temp_t2_thres;
 	int temp_t2_thres_plus_x_degree;
+	int temp_t1p5_thres;
+	int temp_t1p5_thres_plus_x_degree;
 	int temp_t1_thres;
 	int temp_t1_thres_plus_x_degree;
 	int temp_t0_thres;
@@ -267,6 +284,16 @@ struct charger_custom_data {
 
 	int vsys_watt;
 	int ibus_err;
+
+	/* cycyle count*/
+	int ffc_cv_1;
+	int ffc_cv_2;
+	int ffc_cv_3;
+	int ffc_cv_4;
+
+	int cycle_count_level1;
+	int cycle_count_level2;
+	int cycle_count_level3;
 };
 
 struct charger_data {
@@ -332,6 +359,9 @@ struct charger_manager {
 	/* sw jeita */
 	bool enable_sw_jeita;
 	struct sw_jeita_data sw_jeita;
+
+	/* input suspend*/
+	bool is_input_suspend;
 
 	/* dynamic_cv */
 	bool enable_dynamic_cv;
@@ -427,6 +457,38 @@ struct charger_manager {
 	bool force_disable_pp[TOTAL_CHARGER];
 	bool enable_pp[TOTAL_CHARGER];
 	struct mutex pp_lock[TOTAL_CHARGER];
+
+	/* cycyle count*/
+	bool enable_sw_fcc;
+
+	int temp_level;
+};
+
+/* Power Supply */
+struct mt_charger {
+	struct device *dev;
+	struct power_supply_desc chg_desc;
+	struct power_supply_config chg_cfg;
+	struct power_supply *chg_psy;
+	struct power_supply_desc ac_desc;
+	struct power_supply_config ac_cfg;
+	struct power_supply *ac_psy;
+	struct power_supply_desc usb_desc;
+	struct power_supply_config usb_cfg;
+	struct power_supply *usb_psy;
+	struct power_supply *bms_psy;
+	struct power_supply_desc main_desc;
+	struct power_supply_config main_cfg;
+	struct power_supply *main_psy;
+	struct power_supply *charger_identify_psy;
+	struct chg_type_info *cti;
+	bool chg_online; /* Has charger in or not */
+	bool vbus_disable;
+	enum charger_type chg_type;
+	enum hvdcp_status	hvdcp_type;
+	struct charger_device *chg1_dev;
+
+	struct delayed_work	clear_soc_decimal_rate_work;
 };
 
 /* charger related module interface */
@@ -451,6 +513,9 @@ extern int pmic_is_bif_exist(void);
 extern int pmic_enable_hw_vbus_ovp(bool enable);
 extern bool pmic_is_battery_exist(void);
 
+extern void charger_manager_set_system_temp_level(int temp_level);
+extern int charger_manager_get_system_temp_level(void);
+extern int charger_manager_get_system_temp_level_max(void);
 
 extern void notify_adapter_event(enum adapter_type type, enum adapter_event evt,
 	void *val);
@@ -489,5 +554,11 @@ static const struct file_operations mtk_chg_##name##_fops = {		\
 	.release = single_release,					\
 	.write = mtk_chg_##name##_write,				\
 }
+
+enum charger_part_no {
+	SY6970  = 0x01,
+	BQ25890 = 0x03,
+	SC8989X = 0x04,
+};
 
 #endif /* __MTK_CHARGER_INTF_H__ */

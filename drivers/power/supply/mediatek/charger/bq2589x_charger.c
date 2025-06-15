@@ -30,12 +30,6 @@ enum bq2589x_vbus_type {
 	BQ2589X_VBUS_TYPE_NUM,
 };
 
-enum bq2589x_part_no {
-	BQ25890 = 0x03,
-	BQ25892 = 0x00,
-	BQ25895 = 0x07,
-};
-
 #define BQ2589X_STATUS_PLUGIN			0x0001
 #define BQ2589X_STATUS_PG				0x0002
 #define	BQ2589X_STATUS_CHARGE_ENABLE	0x0004
@@ -55,11 +49,10 @@ struct bq2589x_config {
 	bool	use_absolute_vindpm;
 };
 
-
 struct bq2589x {
 	struct device *dev;
 	struct i2c_client *client;
-	enum   bq2589x_part_no part_no;
+	enum   charger_part_no part_no;
 	int    revision;
 
 	unsigned int	status;
@@ -1430,6 +1423,7 @@ static enum power_supply_property bq2589x_charger_props[] = {
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_TYPE,
+	POWER_SUPPLY_PROP_MANUFACTURER,
 };
 
 
@@ -1455,6 +1449,9 @@ static int bq2589x_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TYPE:
 		val->intval = POWER_SUPPLY_TYPE_USB_DCP;
 		break;
+	case POWER_SUPPLY_PROP_MANUFACTURER:
+        val->strval = "TI";
+        break;
 	default:
 		return -EINVAL;
 	}
@@ -1973,6 +1970,19 @@ static irqreturn_t bq2589x_charger_interrupt(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+static int bq2589x_get_vendor_id(struct charger_device *chg_dev, u32 *vendor_id)
+{
+	struct bq2589x *bq = dev_get_drvdata(&chg_dev->dev);
+
+	if (bq == NULL) {
+		pr_err("%s: bq2589x is null\n", __func__);
+		return -EINVAL;
+	}
+
+	*vendor_id = bq->part_no;
+	return 0;
+}
+
 static struct charger_ops bq2589x_chg_ops = {
 	/*normal charging*/
 	.plug_in = bq2589x_plug_in,
@@ -2019,6 +2029,7 @@ static struct charger_ops bq2589x_chg_ops = {
 
 	/* Shipping mode */
 	//.enable_shipping_mode = bq2589x_enable_shipping_mode,
+	.get_vendor_id = bq2589x_get_vendor_id,
 };
 
 static int bq2589x_charger_probe(struct i2c_client *client,
@@ -2028,6 +2039,7 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 	int irqn;
 	int ret;
 
+	pr_err("%s:bq2589x probe start\n",__func__);
 	bq = devm_kzalloc(&client->dev, sizeof(struct bq2589x), GFP_KERNEL);
 	if (!bq)
 		return -ENOMEM;
@@ -2036,15 +2048,12 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 	bq->client = client;
 	i2c_set_clientdata(client, bq);
 
-	ret = bq2589x_detect_device(bq);
-	if (!ret) {
-		bq->status |= BQ2589X_STATUS_EXIST;
-		dev_info(bq->dev, "%s: charger device bq25890 detected, revision:%d\n",
-			__func__, bq->revision);
-	} else {
-		dev_info(bq->dev, "%s: no bq25890 charger device found:%d\n", __func__, ret);
-		return -ENODEV;
-	}
+	if(!bq2589x_detect_device(bq)){
+		if(bq->part_no != BQ25890){
+            pr_err("%s:bq25890 device no find\n",__func__);
+            return -ENODEV;
+        }
+	 }
 
 	bq->batt_psy = power_supply_get_by_name("battery");
 	bq->fixed_input_current = -1;
@@ -2116,6 +2125,7 @@ static int bq2589x_charger_probe(struct i2c_client *client,
 	pe.enable = true;
 	schedule_work(&bq->irq_work);/*in case of adapter has been in when power off*/
 	//hardwareinfo_set_prop(HARDWARE_CHARGER_IC_INFO, "BQ2589X");
+	pr_err("%s:bq2589x probe end\n",__func__);
 	return 0;
 
 err_irq:
@@ -2137,13 +2147,17 @@ return ret;
 
 
 }
-
+extern int get_shipmode_status(void);
 static void bq2589x_charger_shutdown(struct i2c_client *client)
 {
 	struct bq2589x *bq = i2c_get_clientdata(client);
-
+	int ret = 0;
 	dev_info(bq->dev, "%s: shutdown\n", __func__);
 
+	if (get_shipmode_status() == 1) {
+		ret = bq2589x_enter_ship_mode(bq);
+		pr_err("%s enter ship_mode ret=%d\n",  __func__, ret);
+	}
 	bq2589x_psy_unregister(bq);
 
 	cancel_work_sync(&bq->irq_work);

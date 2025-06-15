@@ -10,10 +10,38 @@
 #include <linux/slab.h>
 #include "mtk_intf.h"
 
-#define PD_MIN_WATT 5000000
+#define PD_MIN_WATT 0//5000000
 #define PD_VBUS_IR_DROP_THRESHOLD 1200
 
 static struct pdc *pd;
+
+int pdc_get_charger_ibat(u32 *ibus)
+{
+	int rc;
+	int ibat = 0;
+	union power_supply_propval pval = {0, };
+	struct power_supply *psy;
+
+	psy = power_supply_get_by_name("battery");
+	if(!psy) {
+		pr_err("psy is null, pdc_get_charger_ibus failed.\n");
+		return -EINVAL;
+	}
+
+	rc = power_supply_get_property(psy, POWER_SUPPLY_PROP_CURRENT_NOW, &pval);
+	if (rc < 0) {
+		pr_err("pdc get current now fialed\n");
+		return -EINVAL;
+	}
+	if(pval.intval < 0)
+		pval.intval = 0;
+
+	charger_get_ibus(&ibat);
+	*ibus = ibat > 0 ? ibat : pval.intval;
+
+	//chr_err("[%s] ibus = %d; ibat = %d, pval.intval = %d\n", __func__, *ibus, ibat, pval.intval);
+	return rc;
+}
 
 bool pdc_is_ready(void)
 {
@@ -277,6 +305,7 @@ int pdc_get_setting(int *newvbus, int *newcur,
 	struct pd_cap *cap = NULL;
 	unsigned int mivr1 = 0;
 	bool chg1_mivr = false;
+	int ibus_retry = 0;
 
 	pdc_init_table();
 	pdc_get_reset_idx();
@@ -287,11 +316,23 @@ int pdc_get_setting(int *newvbus, int *newcur,
 	if (cap->nr == 0)
 		return -1;
 
-	ret = charger_get_ibus(&ibus);
+	ret = pdc_get_charger_ibat(&ibus);
 	if (ret < 0) {
 		chr_err("[%s] get ibus fail, keep default voltage\n", __func__);
 		return -1;
 	}
+	while (ibus <= 0 && ibus_retry <=10)
+	{
+		msleep(100);
+		ibus_retry++;
+		ret = pdc_get_charger_ibat(&ibus);
+		if (ret < 0) {
+			chr_err("[%s] get ibus fail, keep default voltage\n", __func__);
+			return -1;
+		}
+	}
+
+
 
 	charger_get_mivr_state(&chg1_mivr);
 	charger_get_mivr(&mivr1);
@@ -361,11 +402,21 @@ int pdc_check_leave(void)
 	unsigned int mivr1 = 0;
 	bool mivr_state = false;
 	int max_mv = 0;
+	int ibus_retry = 0;
 
 	cap = &pd->cap;
 	max_mv = cap->max_mv[pd->pd_idx];
 
-	charger_get_ibus(&ibus);
+	/* Begin for HTH-328925  PD charging does not exit the PDC process  20230831*/
+	chr_err("[%s]  return !\n", __func__);
+	return 0;
+	/* End for HTH-328925  20230831 */
+
+	do {
+		msleep(100);
+		charger_get_ibus(&ibus);
+	} while(ibus<=0 && ++ibus_retry < 30);
+
 	ibus = ibus / 1000;
 	vbus = battery_get_vbus();
 	charger_get_mivr_state(&mivr_state);
@@ -402,12 +453,12 @@ int pdc_init(void)
 
 		pd->data.input_current_limit = 3000000;
 		pd->data.charging_current_limit = 3000000;
-		pd->data.battery_cv = 4350000;
+		pd->data.battery_cv = 4450000;
 
 		pd->data.min_charger_voltage = 4600000;
 		pd->data.pd_vbus_low_bound = 5000000;
 		pd->data.pd_vbus_upper_bound = 5000000;
-		pd->data.ibus_err = 14;
+		pd->data.ibus_err = 50;
 		pd->data.vsys_watt = 5000000;
 
 		pd->pdc_input_current_limit_setting = -1;
@@ -460,11 +511,28 @@ int pdc_set_data(struct pdc_data data)
 
 int pdc_set_current(void)
 {
+	struct power_supply *charger_psy;
+	union power_supply_propval propval;
+	int rc;
+
+	charger_psy = power_supply_get_by_name("sc-charger");
+	if (charger_psy) {
+		rc = power_supply_get_property(charger_psy, POWER_SUPPLY_PROP_USB_TYPE, &propval);
+		if (rc < 0) {
+			pr_err("%s : get usb type fail\n", __func__);
+		}
+	}
+
 	if (pd->pdc_input_current_limit_setting != -1 &&
 	    pd->pdc_input_current_limit_setting <
 	    pd->data.input_current_limit)
 		pd->data.input_current_limit =
 			pd->pdc_input_current_limit_setting;
+
+	if (propval.intval == POWER_SUPPLY_USB_TYPE_SDP) {
+		pd->data.input_current_limit = 1200000;
+		pd->data.charging_current_limit = 1200000;
+	}
 
 	charger_set_input_current(pd->data.input_current_limit);
 	charger_set_charging_current(pd->data.charging_current_limit);

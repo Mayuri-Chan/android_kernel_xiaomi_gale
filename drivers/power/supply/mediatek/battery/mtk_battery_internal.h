@@ -44,7 +44,7 @@
 #define SHUTDOWN_TIME 40
 #define AVGVBAT_ARRAY_SIZE 30
 #define INIT_VOLTAGE 3450
-#define BATTERY_SHUTDOWN_TEMPERATURE 60
+#define BATTERY_SHUTDOWN_TEMPERATURE 70
 
 /* ============================================================ */
 /* typedef and Struct*/
@@ -939,6 +939,9 @@ struct mtk_battery {
 	struct battery_temperature_table rbat;
 
 	struct fgd_cmd_param_t_custom fg_data;
+
+	/*ship_mode*/
+	int ship_mode;
 };
 
 
@@ -993,6 +996,7 @@ extern int battery_get_charger_zcv(void);
 extern bool is_fg_disabled(void);
 extern int battery_notifier(int event);
 extern bool set_charge_power_sel(enum CHARGE_SEL select);
+extern void mtk_charging_enable_write(int en);
 
 /* pmic */
 extern int pmic_get_battery_voltage(void);

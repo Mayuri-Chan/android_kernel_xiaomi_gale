@@ -73,7 +73,8 @@
 #include "simulator_kernel.h"
 #endif
 
-
+#include <linux/of_platform.h>
+#include <linux/iio/consumer.h>
 
 /* ============================================================ */
 /* global variable */
@@ -84,7 +85,7 @@ struct mtk_battery gm;
 /* gauge hal interface */
 /* ============================================================ */
 
-void __attribute__ ((weak)) 
+void __attribute__ ((weak))
 		pmic_register_interrupt_callback(unsigned int intNo,
   		void (EINT_FUNC_PTR) (void))
 {
@@ -636,7 +637,7 @@ void fgauge_get_profile_id(void)
 	}
 
 	bm_err("[%s]auxadc_voltage is %d\n", __func__, auxadc_voltage);
-	id_volt = auxadc_voltage * 1500 / 4096;
+	id_volt = auxadc_voltage * 1000;
 	bm_err("[%s]battery_id_voltage is %d\n", __func__, id_volt);
 
 	if ((sizeof(g_battery_id_voltage) /
