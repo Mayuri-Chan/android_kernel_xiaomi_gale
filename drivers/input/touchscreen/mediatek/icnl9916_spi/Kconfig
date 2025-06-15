@@ -1,0 +1,7 @@
+config TOUCHSCREEN_CHIPONE
+        bool "ICNL9916 for Mediatek packag"
+        default y
+        help
+          Say Y here if you have ICNL9916 touch panel.
+
+          If unsure, say N.
