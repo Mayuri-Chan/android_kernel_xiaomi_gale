@@ -20,6 +20,7 @@ obj-$(CONFIG_MTK_LCM) += mt65xx_lcm_list.o        \
                          lcm_gpio.o               \
                          lcm_i2c.o                \
                          lcm_pmic.o               \
+                         ocp2131_bias.o               \
                          lcm_util.o
 
 LCM_LISTS := $(subst ",,$(CONFIG_CUSTOM_KERNEL_LCM))

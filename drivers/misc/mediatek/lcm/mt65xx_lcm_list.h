@@ -9,6 +9,10 @@
 
 #include <lcm_drv.h>
 
+extern struct LCM_DRIVER dsi_panel_c3u_42_0f_0d_dsc_vdo_lcm_drv;
+extern struct LCM_DRIVER dsi_panel_c3u_46_0f_0c_dsc_vdo_lcm_drv;
+extern struct LCM_DRIVER dsi_panel_c3u_43_02_0a_dsc_vdo_lcm_drv;
+extern struct LCM_DRIVER dsi_panel_c3u_35_03_0b_dsc_vdo_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_60hz_lcm_drv;
 extern struct LCM_DRIVER otm1282a_hd720_dsi_vdo_lcm_drv;
 extern struct LCM_DRIVER nt35595_fhd_dsi_cmd_truly_8163_lcm_drv;
