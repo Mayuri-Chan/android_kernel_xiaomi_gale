@@ -59,6 +59,8 @@ extern unsigned int round_corner_offset_enable;
 extern bool g_force_cfg;
 extern unsigned int g_force_cfg_id;
 
+extern bool disp_lcm_state;
+
 struct DISP_LAYER_INFO {
 	unsigned int id;
 	unsigned int curr_en;

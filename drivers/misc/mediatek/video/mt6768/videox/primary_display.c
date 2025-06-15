@@ -79,6 +79,7 @@
 /* #include "mtk_vcorefs_manager.h" */
 #endif
 
+#include "disp_feature.h"
 #include "ddp_disp_bdg.h"
 #include "disp_lowpower.h"
 #include "disp_recovery.h"
@@ -219,6 +220,10 @@ struct wakeup_source* pri_wk_lock;
 bool g_force_cfg;
 unsigned int g_force_cfg_id;
 
+bool disp_lcm_state=true;
+extern char mtkfb_lcm_name[256];
+extern void DSI_set_cmdq_V2_Wrapper_DSI0(unsigned int cmd, unsigned char count,
+	unsigned char *para_list, unsigned char force_update);
 /* Notice: should hold path lock before call this function */
 void lock_primary_wake_lock(bool lock)
 {
@@ -3815,6 +3820,200 @@ static void replace_fb_addr_to_mva(void)
 #endif
 }
 
+struct LCM_setting_table *hbm_off,*hbm1_on,*hbm2_on,*hbm3_on;
+static void diff_panel_set_cmd(void)
+{
+    if (strncmp(mtkfb_lcm_name, "dsi_panel_c3u_43_02_0a_dsc_vdo", 30) == 0 ||
+        strncmp(mtkfb_lcm_name, "dsi_panel_c3u_46_0f_0c_dsc_vdo", 30) == 0 ||
+        strncmp(mtkfb_lcm_name, "dsi_panel_c3u_42_0f_0d_dsc_vdo", 30) == 0) {
+        hbm_off = truly_hbm_off;
+        hbm1_on = truly_hbm1_on;
+        hbm2_on = truly_hbm2_on;
+        hbm3_on = truly_hbm3_on;
+    } else if (strncmp(mtkfb_lcm_name, "dsi_panel_c3u_35_03_0b_dsc_vdo", 30) == 0) {
+        hbm_off = boe_hbm_off;
+        hbm1_on = boe_hbm1_on;
+        hbm2_on = boe_hbm2_on;
+        hbm3_on = boe_hbm3_on;
+    }
+}
+
+static void display_feature_push_table(struct LCM_setting_table *table,
+		unsigned int count,
+		unsigned char force_update)
+{
+	unsigned int i;
+	unsigned int cmd;
+
+	for (i = 0; i < count; i++) {
+		cmd = table[i].cmd;
+		DSI_set_cmdq_V2_Wrapper_DSI0(cmd, table[i].count,
+				table[i].para_list, force_update);
+	}
+}
+
+#define CABC_3RD_DELAY 10
+#define CABC_4RD_DELAY 10
+static int last_cabc_mode_3rd = 0xf0000;
+static struct LCM_setting_table *last_cabc_on_cmd_3rd=cabc1_on_3rd;
+static struct LCM_setting_table *last_cabc_off_cmd_3rd=cabc1_off_3rd;
+static void cabc_mode_switch_3rd(int param) {
+	mdelay(CABC_3RD_DELAY);
+	display_feature_push_table(cabc_write_unlock_3rd,1,1);
+	mdelay(CABC_3RD_DELAY);
+	display_feature_push_table(cabc_D6_3rd,1,1);
+	mdelay(CABC_3RD_DELAY);
+	switch(param) {
+		case 0xf0001: //ui
+			display_feature_push_table(cabc1_on_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			display_feature_push_table(cabc1_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			last_cabc_off_cmd_3rd=cabc1_off_3rd;
+			pr_info("cabc 0xf0001 on 3rd\n");
+			break;
+		case 0xf0002: //movie
+			display_feature_push_table(cabc2_on_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			display_feature_push_table(cabc2_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			last_cabc_off_cmd_3rd=cabc2_off_3rd;
+			pr_info("cabc 0xf0002 on 3rd\n");
+			break;
+		case 0xf0003: //still
+			display_feature_push_table(cabc3_on_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			display_feature_push_table(cabc3_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			last_cabc_off_cmd_3rd=cabc3_off_3rd;
+			pr_info("cabc 0xf0003 on 3rd\n");
+			break;
+		case 0xf0000://DISPPARAM_CABC_OFF off
+			display_feature_push_table(last_cabc_off_cmd_3rd,1,1);
+			mdelay(CABC_3RD_DELAY);
+			if(last_cabc_mode_3rd==0xf0001) {
+				display_feature_push_table(cabc1_3rd,1,1);
+			} else if(last_cabc_mode_3rd==0xf0002) {
+				display_feature_push_table(cabc2_3rd,1,1);
+			} else if(last_cabc_mode_3rd==0xf0003) {
+				display_feature_push_table(cabc3_3rd,1,1);
+			} else {
+				pr_err("disp_param error in 0xf0000\n");
+			}
+			mdelay(CABC_3RD_DELAY);
+			break;
+		default :
+			pr_err("param error\n",param);
+			break;
+	}
+	display_feature_push_table(cabc_write_lock_3rd,1,1);
+	last_cabc_mode_3rd = param;
+}
+
+int primary_display_set_panel_param(int param)
+{
+	int current_level;
+    current_level=get_current_backlight_level();
+	if(param != 0xf0000 && param != 0xf0001 && param != 0xf0002 && param != 0xf0003 &&
+		param != 0xB0000 && param != 0xC0000 && param != 0xD0000 && param != 0xE0000) {
+		pr_info("unknow cmds: 0x%x\n", param);
+		return 0;
+	}
+
+	if(param == 0xB0000 || param == 0xC0000 || param == 0xD0000 || param == 0xE0000) {
+          if (current_level != 2047) {
+          pr_info("skip hbm cmd: 0x%x bl = %d\n", param, current_level);
+          return 0;
+          }
+        }
+
+    primary_display_manual_lock();
+
+	if (primary_get_state() == DISP_SLEPT) {
+		DISPINFO("primary display path is slept?? -- skip read\n");
+		primary_display_manual_unlock();
+		return -1;
+	}
+
+	primary_display_idlemgr_kick(__func__, 0);
+
+	do_lcm_vdo_lp_write_2(dimming_on,1);
+
+	if( (strncmp(mtkfb_lcm_name, "dsi_panel_c3u_46_0f_0c_dsc_vdo", 30) == 0) &&
+		(param>=0xf0000 && param<=0xf0009)) {
+		cabc_mode_switch_3rd(param);
+	} else if ((strncmp(mtkfb_lcm_name, "dsi_panel_c3u_42_0f_0d_dsc_vdo", 30) == 0) &&
+		(param>=0xf0000 && param<=0xf0009)) {
+		pr_info("_###_%s, set_param_cmd: 0x%x\n",__func__, param);
+		switch(param) {
+			case 0xf0001: //ui
+				mdelay(CABC_4RD_DELAY);
+				display_feature_push_table(cabc_ui_on_4th, 1, 1);
+				pr_info("%s : CABC_DISPPARAM_UI_ON on\n",__func__);
+				break;
+			case 0xf0002: //movie
+				mdelay(CABC_4RD_DELAY);
+				display_feature_push_table(cabc_mov_on_4th, 1, 1);
+				pr_info("%s : CABC_DISPPARAM_MOVIE_ON\n",__func__);
+				break;
+			case 0xf0003: //still
+				mdelay(CABC_4RD_DELAY);
+				display_feature_push_table(cabc_still_on_4th, 1, 1);
+				pr_info("%s : CABC_DISPPARAM_STILL_ON\n",__func__);
+				break;
+			case 0xf0000://DISPPARAM_CABC_OFF off
+				mdelay(CABC_4RD_DELAY);
+				display_feature_push_table(cabc_off_on_4th, 1, 1);
+				pr_info("%s : CABC_DISPPARAM_OFF_ON\n",__func__);
+				break;
+			default:
+				pr_err("%s : unknow cmds: 0x%x\n", __func__, param);
+				break;
+		}
+	} else {
+		pr_info("_###_%s,set_param_cmd: 0x%x\n",__func__, param);
+		switch(param) {
+			case 0xf0001: //DISPPARAM_CABCUI_ON on
+				do_lcm_vdo_lp_write_2(cabc_level1,1);
+				pr_info("DISPPARAM_CABCUI_ON on\n",__func__);
+				break;
+			case 0xf0003: //DISPPARAM_CABCSTILL_ON on
+				do_lcm_vdo_lp_write_2(cabc_level2,1);
+				pr_info("DISPPARAM_CABCSTILL_ON on\n",__func__);
+				break;
+			case 0xf0002: //DISPPARAM_CABCMOVIE_ON on
+				do_lcm_vdo_lp_write_2(cabc_level3,1);
+				pr_info("DISPPARAM_CABCMOVIE_ON on\n",__func__);
+				break;
+			case 0xf0000://DISPPARAM_CABC_OFF off
+				do_lcm_vdo_lp_write_2(cabc_level0,1);
+				pr_info("DISPPARAM_CABC_OFF on\n",__func__);
+				break;
+			case 0xB0000: //hbm1 on
+				display_feature_push_table(hbm1_on,1,1);
+				pr_info("hbm1 on on\n",__func__);
+				break;
+			case 0xC0000: //hbm2 on
+				display_feature_push_table(hbm2_on,1,1);
+				pr_info("hbm2 on on\n",__func__);
+				break;
+			case 0xD0000: //hbm3 on
+				display_feature_push_table(hbm3_on,1,1);
+				pr_info("hbm3 on on\n",__func__);
+				break;
+			case 0xE0000://hbm off
+				display_feature_push_table(hbm_off,1,1);
+				pr_info("hbm off on\n",__func__);
+				break;
+			default:
+				pr_err("unknow cmds: 0x%x\n", param);
+				break;
+		}
+	}
+	primary_display_manual_unlock();
+	return 0;
+}
+
 int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	int is_lcm_inited)
 {
@@ -4230,8 +4429,9 @@ int primary_display_init(char *lcm_name, unsigned int lcm_fps,
 	/*DynFPS*/
 	primary_display_init_multi_cfg_info();
 #endif
-
+	diff_panel_set_cmd();
 	DISPCHECK("%s done\n", __func__);
+
 
 done:
 	DISPDBG("init and hold wakelock...\n");
@@ -4709,6 +4909,7 @@ int primary_display_suspend(void)
 #endif
 
 	DISPCHECK("%s begin\n", __func__);
+  	disp_lcm_state=false;
 	mmprofile_log_ex(ddp_mmp_get_events()->primary_suspend,
 		MMPROFILE_FLAG_START, 0, 0);
 	primary_display_idlemgr_kick(__func__, 1);
@@ -5010,6 +5211,7 @@ int primary_display_lcm_power_on_state(int alive)
 				skip_update = 1;
 			}
 			DISPMSG("[POWER]lcm resume[end]\n");
+			disp_lcm_state=true;
 			primary_display_set_lcm_power_state_nolock(LCM_ON);
 		}
 	}

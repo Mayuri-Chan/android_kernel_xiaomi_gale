@@ -95,6 +95,8 @@ static atomic_t esd_ext_te_1_event = ATOMIC_INIT(0);
 static unsigned int extd_esd_check_mode;
 static unsigned int extd_esd_check_enable;
 #endif
+extern void nvt_ts_esd_resume(int flag);
+extern char mtkfb_lcm_name[256];
 
 unsigned int get_esd_check_mode(void)
 {
@@ -550,6 +552,87 @@ DISPTORY:
 	return ret;
 }
 
+int do_lcm_vdo_lp_write_2(struct ddp_lcm_write_cmd_table *write_table,
+                          unsigned int count)
+{
+  int ret = 0;
+  int i = 0;
+  struct cmdqRecStruct *handle;
+  /*primary_display_manual_lock();
+
+  if (primary_get_state() == DISP_SLEPT) {
+	DISPINFO("primary display path is slept?? -- skip read\n");
+	primary_display_manual_unlock();
+	return -1;
+	}*/
+
+    /* 0.create esd check cmdq */
+    cmdqRecCreate(CMDQ_SCENARIO_DISP_ESD_CHECK, &handle);
+
+    /* 1.use cmdq to read from lcm */
+    if (primary_display_is_video_mode()) {
+
+    /* 1.reset */
+    cmdqRecReset(handle);
+
+    /* wait stream eof first */
+    cmdqRecWait(handle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+
+    /* 2.stop dsi vdo mode */
+    dpmgr_path_build_cmdq(primary_get_dpmgr_handle(),
+                          handle, CMDQ_STOP_VDO_MODE, 0);
+
+    /* 3.write instruction */
+    for (i = 0; i < count; i++) {
+      ret = ddp_dsi_write_lcm_cmdq(DISP_MODULE_DSI0,
+                                   handle, write_table[i].cmd,
+                                   write_table[i].count,
+                                   write_table[i].para_list);
+      if (ret)
+        break;
+    }
+
+    /* 4.start dsi vdo mode */
+    dpmgr_path_build_cmdq(primary_get_dpmgr_handle(),
+                          handle, CMDQ_START_VDO_MODE, 0);
+
+    cmdqRecClearEventToken(handle, CMDQ_EVENT_MUTEX0_STREAM_EOF);
+
+    /* 5. trigger path */
+    dpmgr_path_trigger(primary_get_dpmgr_handle(),
+                       handle, CMDQ_ENABLE);
+
+    /*	mutex sof wait*/
+    ddp_mutex_set_sof_wait(dpmgr_path_get_mutex(
+      primary_get_dpmgr_handle()), handle, 0);
+
+
+    /* 6.flush instruction */
+    ret = cmdqRecFlush(handle);
+  } else {
+    DISPINFO("Not support cmd mode\n");
+  }
+
+  if (ret == 1) {	/* cmdq fail */
+    if (need_wait_esd_eof()) {
+      /* Need set esd check eof */
+      /*synctoken to let trigger loop go. */
+      cmdqCoreSetEvent(CMDQ_SYNC_TOKEN_ESD_EOF);
+    }
+    /* do dsi reset */
+    dpmgr_path_build_cmdq(primary_get_dpmgr_handle(), handle,
+                          CMDQ_DSI_RESET, 0);
+    goto DISPTORY;
+  }
+
+  DISPTORY:
+  /* 7.destroy esd config thread */
+  cmdqRecDestroy(handle);
+  //primary_display_manual_unlock();
+
+    return ret;
+}
+
 /**
  * ESD CHECK FUNCTION
  * return 1: esd check fail
@@ -638,6 +721,7 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 	int i = 0;
 	int esd_try_cnt = 5; /* 20; */
 	int recovery_done = 0;
+	int last_level;
 
 	sched_setscheduler(current, SCHED_RR, &param);
 
@@ -678,7 +762,18 @@ static int primary_display_check_recovery_worker_kthread(void *data)
 			DISPERR(
 				"[ESD]esd check fail, will do esd recovery. try=%d\n",
 				i);
+			DISPDBG("[ESD]backlignt off[begin]\n");
+			last_level=get_last_backlight_level();
+			backlight_brightness_set(0);
+			mdelay(200);
+			DISPDBG("[ESD] backlignt off[end]\n");
+
 			primary_display_esd_recovery();
+
+			mdelay(200);
+			DISPDBG("[ESD]backlignt on[begin]\n");
+			backlight_brightness_set(last_level);
+			DISPDBG("[ESD] backlignt on[end]\n");
 			recovery_done = 1;
 		} while (++i < esd_try_cnt);
 
@@ -763,6 +858,14 @@ int primary_display_esd_recovery(void)
 	DISPDBG("[POWER]lcm suspend[begin]\n");
 	/*after dsi_stop, we should enable the dsi basic irq.*/
 	dsi_basic_irq_enable(DISP_MODULE_DSI0, NULL);
+
+    if (strnstr(mtkfb_lcm_name,"dsi_panel_c3u_43_02_0a_dsc_vdo",strlen(mtkfb_lcm_name))) {
+        nvt_ts_esd_resume(0);
+        DISPCHECK("It is NVT IC, do tp suspend/resume\n");
+    } else{
+        DISPCHECK("It is not NVT IC, Skip\n");
+    }
+
 	disp_lcm_suspend(primary_get_lcm());
 	DISPCHECK("[POWER]lcm suspend[end]\n");
 
@@ -806,6 +909,14 @@ int primary_display_esd_recovery(void)
 	}
 	DISPDBG("[ESD]lcm recover[begin]\n");
 	disp_lcm_esd_recover(primary_get_lcm());
+
+    if (strnstr(mtkfb_lcm_name,"dsi_panel_c3u_43_02_0a_dsc_vdo",strlen(mtkfb_lcm_name))) {
+        nvt_ts_esd_resume(1);
+        DISPCHECK("It is NVT IC, do tp suspend/resume\n");
+    } else{
+        DISPCHECK("It is not NVT IC, Skip\n");
+    }
+
 	DISPCHECK("[ESD]lcm recover[end]\n");
 	mmprofile_log_ex(mmp_r, MMPROFILE_FLAG_PULSE, 0, 8);
 	if (bdg_is_bdg_connected() == 1 && get_mt6382_init()) {
