@@ -3031,7 +3031,7 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
         if(strlen(imgsensor_name) > 0){
            strncpy(imgsensorname, imgsensor_name, strlen(imgsensor_name));
            src_name = imgsensorname;
-		   for(i=0; ((i < 3)&& (src_name != NULL)); i++) {
+		   for(i=0;((i < 3)&& (src_name != NULL)); i++) {
 			 dst[i] = strsep(&src_name, ";");
 			 pr_err("[zengx] dst[%d]:%s \n", i,  dst[i]);
 		   }
@@ -3047,11 +3047,7 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
 				pr_err("[zengx] WIDE=ov50d40_truly_main_ii_mipi_raw");
 				continue;
 			}
-			if(!strcmp("s5kjns_truly_main_iii_mipi_raw", dst[j])){
-				num1 = sprintf(buf, "WIDE=s5kjns_truly_main_iii_mipi_raw\n");
-				pr_err("[zengx] WIDE=s5kjns_truly_main_iii_mipi_raw");
-				continue;
-			}
+
 			if(!strcmp("ov8856_aac_front_i_mipi_raw", dst[j]) ||
 			!strcmp("ov8856_truly_front_ii_mipi_raw", dst[j])){
 				num2 = sprintf(buf + num1, "FRONT=%s\n", dst[j]);
@@ -3064,11 +3060,11 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
 				num3 = sprintf(buf + num1 + num2, "MACRO=%s\n", dst[j]);
 				pr_err("[zengx] MACRO=%s\n", dst[j]);
 				continue;
-			}
+			}			
 		   }
 		}else{
 			pr_err("[zengx] imgsensorname is NULL");
-		}
+		}     
       ret = strlen(buf) + 1;
       return ret;
   }

@@ -24,6 +24,16 @@ config MTK_ENG_BUILD
 	  Please set N for user mode to avoid performance impact.
 	  If unsure, say N here.
 
+config GC_GC6133C_I
+        bool "camera QVGA module 1"
+        help
+          Used for camera QVGA module 1
+
+config SC_SC080CS_II
+        bool "camera QVGA module 2"
+        help
+          Used for camera QVGA module 2
+
 menu "Storage"
 
 endmenu # Storage

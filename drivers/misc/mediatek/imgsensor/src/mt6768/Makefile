@@ -8,6 +8,14 @@ MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ARCH_MTK_PROJECT := $(subst ",,$(CONFIG_ARCH_MTK_PROJECT))
 IMGSENSOR_DRIVER_PATH  := $(srctree)/drivers/misc/mediatek/imgsensor/src
 COMMON_VERSION := v1
+$(info zaki factorybuild=$(FACTORY_BUILD))
+ifeq (1,$(strip $(FACTORY_BUILD)))
+COMMON_VERSION := v1_factory
+$(info zaki set COMMON_VERSION=v1_factory)
+endif
+$(info zaki driver sensor build=$(IMGSENSOR_DRIVER_PATH)/common/$(COMMON_VERSION))
+
+
 
 subdir-ccflags-y +=  -I$(IMGSENSOR_DRIVER_PATH)/common/$(COMMON_VERSION)
 subdir-ccflags-y +=  -I$(IMGSENSOR_DRIVER_PATH)/../../mmdvfs
@@ -18,6 +26,8 @@ obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_i2c.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_legacy.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_proc.o
 obj-y				+= ../common/$(COMMON_VERSION)/imgsensor_sensor_list.o
+obj-$(CONFIG_GC_GC6133C_I) += ../common/$(COMMON_VERSION)/gc_gc6133c_i/
+obj-$(CONFIG_SC_SC080CS_II) += ../common/$(COMMON_VERSION)/sc_sc080cs_ii/
 
 
 define FILTER_DRV
