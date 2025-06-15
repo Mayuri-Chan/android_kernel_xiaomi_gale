@@ -478,7 +478,7 @@ static int tcpc_device_irq_enable(struct tcpc_device *tcpc)
 	}
 
 	schedule_delayed_work(
-		&tcpc->event_init_work, msecs_to_jiffies(10*1000));
+		&tcpc->event_init_work, msecs_to_jiffies(0));
 
 	pr_info("%s : tcpc irq enable OK!\n", __func__);
 	return 0;

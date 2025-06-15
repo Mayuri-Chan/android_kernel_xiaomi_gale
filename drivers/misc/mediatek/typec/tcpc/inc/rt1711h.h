@@ -47,6 +47,7 @@
 #define RT1711H_REG_UNLOCK_PW_2				(0xF0)
 #define RT1711H_REG_UNLOCK_PW_1				(0xF1)
 #define RT1711H_REG_EFUSE5				(0xF6)
+#define HUSB311_REG_CF					(0xcf)
 
 /*
  * Device ID
@@ -57,6 +58,7 @@
 #define RT1711H_DID_C		0x2172
 
 #define RT1715_DID_D			0x2173
+#define HUSB311_DID             0x0311
 
 /*
  * RT1711H_REG_PHY_CTRL1			(0x80)
@@ -196,3 +198,8 @@
 #endif
 
 #endif /* #ifndef __LINUX_RT1711H_H */
+
+enum husb311_version {
+	HUSB311_B,
+	HUSB311_C,
+};
