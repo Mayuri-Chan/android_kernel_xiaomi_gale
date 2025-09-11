@@ -115,13 +115,25 @@ static ssize_t double_tap_store(struct kobject *kobj,
                                 struct kobj_attribute *attr, const char *buf,
                                 size_t count)
 {
+    struct fts_ts_data *ts_data = fts_data;
     int rc, val;
 
     rc = kstrtoint(buf, 10, &val);
     if (rc)
     return -EINVAL;
 
-    fts_gesture_flag = !!val;
+    mutex_lock(&ts_data->input_dev->mutex);
+    if (val) {
+        FTS_DEBUG("enable gesture");
+        ts_data->gesture_support = ENABLE;
+        fts_gesture_flag = true;
+    } else {
+        FTS_DEBUG("disable gesture");
+        ts_data->gesture_support = DISABLE;
+        fts_gesture_flag = false;
+    }
+    mutex_unlock(&ts_data->input_dev->mutex);
+
     return count;
 }
 
