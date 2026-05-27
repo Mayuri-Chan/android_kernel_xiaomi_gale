@@ -172,7 +172,7 @@ enum {
 #define RTM_NR_FAMILIES	(RTM_NR_MSGTYPES >> 2)
 #define RTM_FAM(cmd)	(((cmd) - RTM_BASE) >> 2)
 
-/* 
+/*
    Generic structure for encapsulation of optional route information.
    It is reminiscent of sockaddr, but with sa_family replaced
    with attribute type.
@@ -212,7 +212,7 @@ struct rtmsg {
 
 	unsigned char		rtm_table;	/* Routing table id */
 	unsigned char		rtm_protocol;	/* Routing protocol; see below	*/
-	unsigned char		rtm_scope;	/* See below */	
+	unsigned char		rtm_scope;	/* See below */
 	unsigned char		rtm_type;	/* See below	*/
 
 	unsigned		rtm_flags;
@@ -472,9 +472,15 @@ enum {
 #define RTAX_FEATURE_SACK	(1 << 1)
 #define RTAX_FEATURE_TIMESTAMP	(1 << 2)
 #define RTAX_FEATURE_ALLFRAG	(1 << 3)
+#define RTAX_FEATURE_TCP_USEC_TS	(1 << 4)
+#define RTAX_FEATURE_ECN_LOW		(1 << 5)
 
-#define RTAX_FEATURE_MASK	(RTAX_FEATURE_ECN | RTAX_FEATURE_SACK | \
-				 RTAX_FEATURE_TIMESTAMP | RTAX_FEATURE_ALLFRAG)
+#define RTAX_FEATURE_MASK	(RTAX_FEATURE_ECN |		\
+				 RTAX_FEATURE_SACK |		\
+				 RTAX_FEATURE_TIMESTAMP |	\
+				 RTAX_FEATURE_ALLFRAG |		\
+				 RTAX_FEATURE_TCP_USEC_TS |	\
+				 RTAX_FEATURE_ECN_LOW)
 
 struct rta_session {
 	__u8	proto;
@@ -530,7 +536,7 @@ struct ifinfomsg {
 };
 
 /********************************************************************
- *		prefix information 
+ *		prefix information
  ****/
 
 struct prefixmsg {
@@ -544,7 +550,7 @@ struct prefixmsg {
 	unsigned char	prefix_pad3;
 };
 
-enum 
+enum
 {
 	PREFIX_UNSPEC,
 	PREFIX_ADDRESS,
