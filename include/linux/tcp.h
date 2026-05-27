@@ -239,7 +239,6 @@ struct tcp_sock {
 		unused:2;
 	u8	nonagle     : 4,/* Disable Nagle algorithm?             */
 		thin_lto    : 1,/* Use linear timeouts for thin streams */
-		recvmsg_inq : 1,/* Indicate # of bytes in queue upon recvmsg */
 		repair      : 1,
 		frto        : 1;/* F-RTO (RFC5682) activated in CA_Loss */
 	u8	repair_queue;
@@ -281,6 +280,8 @@ struct tcp_sock {
  */
 	struct tcp_options_received rx_opt;
 
+	u8 tlp_orig_data_app_limited:1; /* app-limited before TLP rtx? */
+
 /*
  *	Slow start and congestion control (see also Nagle, and Karn & Partridge)
  */
@@ -319,6 +320,10 @@ struct tcp_sock {
 
 	/* OOO segments go in this rbtree. Socket lock must be held. */
 	struct rb_root	out_of_order_queue;
+
+	u32	recvmsg_inq : 1,/* Indicate # of bytes in queue upon recvmsg */
+			fast_ack_mode:1;/* ack ASAP if >1 rcv_mss received? */
+
 	struct sk_buff	*ooo_last_skb; /* cache rb_last(out_of_order_queue) */
 
 	/* SACKs data, these 2 need to be together (see tcp_options_write) */
@@ -407,6 +412,9 @@ struct tcp_sock {
 	 */
 	struct request_sock __rcu *fastopen_rsk;
 	struct saved_syn *saved_syn;
+
+	/* Rerouting information */
+		u16	ecn_rehash;	/* PLB triggered rehash attempts */
 };
 
 enum tsq_enum {
@@ -501,9 +509,28 @@ static inline u16 tcp_mss_clamp(const struct tcp_sock *tp, u16 mss)
 	return (user_mss && user_mss < mss) ? user_mss : mss;
 }
 
+void __tcp_sock_set_cork(struct sock *sk, bool on);
+void tcp_sock_set_cork(struct sock *sk, bool on);
+int tcp_sock_set_keepcnt(struct sock *sk, int val);
+int tcp_sock_set_keepidle_locked(struct sock *sk, int val);
+int tcp_sock_set_keepidle(struct sock *sk, int val);
+int tcp_sock_set_keepintvl(struct sock *sk, int val);
+void __tcp_sock_set_nodelay(struct sock *sk, bool on);
+void tcp_sock_set_nodelay(struct sock *sk);
+void tcp_sock_set_quickack(struct sock *sk, int val);
+int tcp_sock_set_syncnt(struct sock *sk, int val);
+int tcp_sock_set_user_timeout(struct sock *sk, int val);
+
+static inline bool dst_tcp_usec_ts(const struct dst_entry *dst)
+{
+	return dst_feature(dst, RTAX_FEATURE_TCP_USEC_TS);
+}
+
 int tcp_skb_shift(struct sk_buff *to, struct sk_buff *from, int pcount,
 		  int shiftlen);
 
 int tcp_sock_set_keepidle_locked(struct sock *sk, int val);
 int tcp_sock_set_keepidle(struct sock *sk, int val);
+
+
 #endif	/* _LINUX_TCP_H */

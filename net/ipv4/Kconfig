@@ -693,41 +693,31 @@ config TCP_CONG_BBR
 
 choice
 	prompt "Default TCP congestion control"
-	default DEFAULT_CUBIC
+	default DEFAULT_BBR
 	help
 	  Select the TCP congestion control that will be used by default
 	  for all connections.
 
 	config DEFAULT_BIC
 		bool "Bic" if TCP_CONG_BIC=y
-
 	config DEFAULT_CUBIC
 		bool "Cubic" if TCP_CONG_CUBIC=y
-
 	config DEFAULT_HTCP
 		bool "Htcp" if TCP_CONG_HTCP=y
-
 	config DEFAULT_HYBLA
 		bool "Hybla" if TCP_CONG_HYBLA=y
-
 	config DEFAULT_VEGAS
 		bool "Vegas" if TCP_CONG_VEGAS=y
-
 	config DEFAULT_VENO
 		bool "Veno" if TCP_CONG_VENO=y
-
 	config DEFAULT_WESTWOOD
 		bool "Westwood" if TCP_CONG_WESTWOOD=y
-
 	config DEFAULT_DCTCP
 		bool "DCTCP" if TCP_CONG_DCTCP=y
-
 	config DEFAULT_CDG
 		bool "CDG" if TCP_CONG_CDG=y
-
 	config DEFAULT_BBR
 		bool "BBR" if TCP_CONG_BBR=y
-
 	config DEFAULT_RENO
 		bool "Reno"
 endchoice
