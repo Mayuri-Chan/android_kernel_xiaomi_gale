@@ -8,8 +8,8 @@
  * can bound its in-flight data based on its estimate of the BDP.
  *
  * The model has both higher and lower bounds for the operating range:
- *   lo: bw_lo, inflight_lo: conservative short-term lower bound
- *   hi: bw_hi, inflight_hi: robust long-term upper bound
+ * lo: bw_lo, inflight_lo: conservative short-term lower bound
+ * hi: bw_hi, inflight_hi: robust long-term upper bound
  * The bandwidth-probing time scale is (a) extended dynamically based on
  * estimated BDP to improve coexistence with Reno/CUBIC; (b) bounded by
  * an interactive wall-clock time-scale to be more scalable and responsive
@@ -17,20 +17,20 @@
  *
  * Here is a state transition diagram for BBR:
  *
- *             |
- *             V
- *    +---> STARTUP  ----+
- *    |        |         |
- *    |        V         |
- *    |      DRAIN   ----+
- *    |        |         |
- *    |        V         |
- *    +---> PROBE_BW ----+
- *    |      ^    |      |
- *    |      |    |      |
- *    |      +----+      |
- *    |                  |
- *    +---- PROBE_RTT <--+
+ * |
+ * V
+ * +---> STARTUP  ----+
+ * |        |         |
+ * |        V         |
+ * |      DRAIN   ----+
+ * |        |         |
+ * |        V         |
+ * +---> PROBE_BW ----+
+ * |      ^    |      |
+ * |      |    |      |
+ * |      +----+      |
+ * |                  |
+ * +---- PROBE_RTT <--+
  *
  * A BBR flow starts in STARTUP, and ramps up its sending rate quickly.
  * When it estimates the pipe is full, it enters DRAIN to drain the queue.
@@ -46,19 +46,17 @@
  * otherwise we enter STARTUP to try to fill the pipe.
  *
  * BBR is described in detail in:
- *   "BBR: Congestion-Based Congestion Control",
- *   Neal Cardwell, Yuchung Cheng, C. Stephen Gunn, Soheil Hassas Yeganeh,
- *   Van Jacobson. ACM Queue, Vol. 14 No. 5, September-October 2016.
+ * "BBR: Congestion-Based Congestion Control",
+ * Neal Cardwell, Yuchung Cheng, C. Stephen Gunn, Soheil Hassas Yeganeh,
+ * Van Jacobson. ACM Queue, Vol. 14 No. 5, September-October 2016.
  *
  * There is a public e-mail list for discussing BBR development and testing:
- *   https://groups.google.com/forum/#!forum/bbr-dev
+ * https://groups.google.com/forum/#!forum/bbr-dev
  *
  * NOTE: BBR might be used with the fq qdisc ("man tc-fq") with pacing enabled,
  * otherwise TCP stack falls back to an internal pacing using one high
  * resolution timer per TCP socket and may use more resources.
  */
-#include <linux/btf.h>
-#include <linux/btf_ids.h>
 #include <linux/module.h>
 #include <net/tcp.h>
 #include <linux/inet_diag.h>
@@ -68,6 +66,11 @@
 
 #include <trace/events/tcp.h>
 #include "tcp_dctcp.h"
+
+/* Fallback for kernel 4.19 which lacks get_random_u32_below */
+#ifndef get_random_u32_below
+#define get_random_u32_below(n) (prandom_u32() % (n))
+#endif
 
 #define BBR_VERSION		3
 
@@ -327,7 +330,7 @@ static const u32 bbr_bw_probe_cwnd_gain = 1;
  * inflight too much, we must probe for bw periodically on roughly this scale.
  * If low, limits Reno/CUBIC coexistence; if high, limits loss tolerance.
  * We aim to be fair with Reno/CUBIC up to a BDP of at least:
- *  BDP = 25Mbps * .030sec /(1514bytes) = 61.9 packets
+ * BDP = 25Mbps * .030sec /(1514bytes) = 61.9 packets
  */
 static const u32 bbr_bw_probe_max_rounds = 63;
 
@@ -337,7 +340,7 @@ static const u32 bbr_bw_probe_rand_rounds = 2;
 
 /* Use BBR-native probe time scale starting at this many usec.
  * We aim to be fair with Reno/CUBIC up to an inter-loss time epoch of at least:
- *  BDP*RTT = 25Mbps * .030sec /(1514bytes) * 0.030sec = 1.9 secs
+ * BDP*RTT = 25Mbps * .030sec /(1514bytes) * 0.030sec = 1.9 secs
  */
 static const u32 bbr_bw_probe_base_us = 2 * USEC_PER_SEC;  /* 2 secs */
 
@@ -361,9 +364,9 @@ static void bbr_check_probe_rtt_done(struct sock *sk);
 /* This connection can use ECN if both endpoints have signaled ECN support in
  * the handshake and the per-route settings indicated this is a
  * shallow-threshold ECN environment, meaning both:
- *  (a) ECN CE marks indicate low-latency/shallow-threshold congestion, and
- *  (b) TCP endpoints provide precise ACKs that only ACK data segments
- *      with consistent ECN CE status
+ * (a) ECN CE marks indicate low-latency/shallow-threshold congestion, and
+ * (b) TCP endpoints provide precise ACKs that only ACK data segments
+ * with consistent ECN CE status
  */
 static bool bbr_can_use_ecn(const struct sock *sk)
 {
@@ -504,7 +507,7 @@ static u32 bbr_tso_segs_generic(struct sock *sk, unsigned int mss_now,
 }
 
 /* Custom tcp_tso_autosize() for BBR, used at transmit time to cap skb size. */
-__bpf_kfunc static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
+static u32 bbr_tso_segs(struct sock *sk, unsigned int mss_now)
 {
 	return bbr_tso_segs_generic(sk, mss_now, sk->sk_gso_max_size);
 }
@@ -529,7 +532,7 @@ static void bbr_save_cwnd(struct sock *sk)
 		bbr->prior_cwnd = max(bbr->prior_cwnd, tcp_snd_cwnd(tp));
 }
 
-__bpf_kfunc static void bbr_cwnd_event(struct sock *sk, enum tcp_ca_event event)
+static void bbr_cwnd_event(struct sock *sk, enum tcp_ca_event event)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr *bbr = inet_csk_ca(sk);
@@ -596,9 +599,9 @@ static u32 bbr_bdp(struct sock *sk, u32 bw, int gain)
 
 /* To achieve full performance in high-speed paths, we budget enough cwnd to
  * fit full-sized skbs in-flight on both end hosts to fully utilize the path:
- *   - one skb in sending host Qdisc,
- *   - one skb in sending host TSO/GSO engine
- *   - one skb being received by receiver host LRO/GRO/delayed-ACK engine
+ * - one skb in sending host Qdisc,
+ * - one skb in sending host TSO/GSO engine
+ * - one skb being received by receiver host LRO/GRO/delayed-ACK engine
  * Don't worry, at low rates this won't bloat cwnd because
  * in such cases tso_segs_goal is small. The minimum cwnd is 4 packets,
  * which allows 2 outstanding 2-packet sequences, to try to keep pipe
@@ -640,7 +643,7 @@ static u32 bbr_inflight(struct sock *sk, u32 bw, int gain)
  * departure time decisions. We calculate a rough estimate of the number of our
  * packets that might be in the network at the earliest departure time for the
  * next skb scheduled:
- *   in_network_at_edt = inflight_at_edt - (EDT - now) * bw
+ * in_network_at_edt = inflight_at_edt - (EDT - now) * bw
  * If we're increasing inflight, then we want to know if the transmit of the
  * EDT skb will push inflight above the target, so inflight_at_edt includes
  * bbr_tso_segs_goal() from the skb departing at EDT. If decreasing inflight,
@@ -971,7 +974,7 @@ static void bbr_update_gains(struct sock *sk)
 	}
 }
 
-__bpf_kfunc static u32 bbr_sndbuf_expand(struct sock *sk)
+static u32 bbr_sndbuf_expand(struct sock *sk)
 {
 	/* Provision 3 * cwnd since BBR may slow-start even during recovery. */
 	return 3;
@@ -1198,8 +1201,8 @@ static bool bbr_is_inflight_too_high(const struct sock *sk,
 /* Calculate the tx_in_flight level that corresponded to excessive loss.
  * We find "lost_prefix" segs of the skb where loss rate went too high,
  * by solving for "lost_prefix" in the following equation:
- *   lost                     /  inflight                     >= loss_thresh
- *  (lost_prev + lost_prefix) / (inflight_prev + lost_prefix) >= loss_thresh
+ * lost                     /  inflight                     >= loss_thresh
+ * (lost_prev + lost_prefix) / (inflight_prev + lost_prefix) >= loss_thresh
  * Then we take that equation, convert it to fixed point, and
  * round up to the nearest packet.
  */
@@ -1521,16 +1524,16 @@ static bool bbr_is_reno_coexistence_probe_time(struct sock *sk)
  * We bound the Reno-coexistence inter-bw-probe time to be 62-63 round trips.
  * This is calculated to allow fairness with a 25Mbps, 30ms Reno flow,
  * (eg 4K video to a broadband user):
- *   BDP = 25Mbps * .030sec /(1514bytes) = 61.9 packets
+ * BDP = 25Mbps * .030sec /(1514bytes) = 61.9 packets
  *
  * We bound the BBR-native inter-bw-probe wall clock time to be:
- *  (a) higher than 2 sec: to try to avoid causing loss for a long enough time
- *      to allow Reno at 30ms to get 4K video bw, the inter-bw-probe time must
- *      be at least: 25Mbps * .030sec / (1514bytes) * 0.030sec = 1.9secs
- *  (b) lower than 3 sec: to ensure flows can start probing in a reasonable
- *      amount of time to discover unutilized bw on human-scale interactive
- *      time-scales (e.g. perhaps traffic from a web page download that we
- *      were competing with is now complete).
+ * (a) higher than 2 sec: to try to avoid causing loss for a long enough time
+ * to allow Reno at 30ms to get 4K video bw, the inter-bw-probe time must
+ * be at least: 25Mbps * .030sec / (1514bytes) * 0.030sec = 1.9secs
+ * (b) lower than 3 sec: to ensure flows can start probing in a reasonable
+ * amount of time to discover unutilized bw on human-scale interactive
+ * time-scales (e.g. perhaps traffic from a web page download that we
+ * were competing with is now complete).
  */
 static void bbr_pick_probe_wait(struct sock *sk)
 {
@@ -1685,7 +1688,7 @@ static bool bbr_adapt_upper_bounds(struct sock *sk,
 		}
 	}
 	if (bbr_is_inflight_too_high(sk, rs)) {
-		if (bbr->bw_probe_samples)  /*  sample is from bw probing? */
+		if (bbr->bw_probe_samples)  /* sample is from bw probing? */
 			bbr_handle_inflight_too_high(sk, rs);
 	} else {
 		/* Loss/ECN rate is declared safe. Adjust upper bound upward. */
@@ -1807,12 +1810,12 @@ static void bbr_update_cycle_phase(struct sock *sk,
 	 * We terminate PROBE_UP bandwidth probing upon any of the following:
 	 *
 	 * (1) We've pushed inflight up to hit the inflight_hi target set in the
-	 *     most recent previous bw probe phase. Thus we want to start
-	 *     draining the queue immediately because it's very likely the most
-	 *     recently sent packets will fill the queue and cause drops.
+	 * most recent previous bw probe phase. Thus we want to start
+	 * draining the queue immediately because it's very likely the most
+	 * recently sent packets will fill the queue and cause drops.
 	 * (2) If inflight_hi has not limited bandwidth growth recently, and
-	 *     yet delivered bandwidth has not increased much recently
-	 *     (bbr->full_bw_now).
+	 * yet delivered bandwidth has not increased much recently
+	 * (bbr->full_bw_now).
 	 * (3) Loss filter says loss rate is "too high".
 	 * (4) ECN filter says ECN mark rate is "too high".
 	 *
@@ -1998,11 +2001,11 @@ static void bbr_update_model(struct sock *sk, const struct rate_sample *rs,
  * skip some of the computation in bbr state processing:
  *
  * - if there is no rtt/mode/phase change: In this case, since all the
- *   parameters of the network model are constant, we can skip model
- *   as well control update.
+ * parameters of the network model are constant, we can skip model
+ * as well control update.
  *
  * - else we can skip rest of the model update. But we still need to
- *   update the control to account for the new rtt/mode/phase.
+ * update the control to account for the new rtt/mode/phase.
  *
  * Returns whether we can take fast path or not.
  */
@@ -2033,7 +2036,7 @@ static bool bbr_run_fast_path(struct sock *sk, bool *update_model,
 	return false;
 }
 
-__bpf_kfunc static void bbr_main(struct sock *sk, u32 ack, int flag,
+static void bbr_main(struct sock *sk, u32 ack, int flag,
 				 const struct rate_sample *rs)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -2075,7 +2078,7 @@ out:
 	bbr->ecn_in_cycle  |= rs->delivered_ce > 0;
 }
 
-__bpf_kfunc static void bbr_init(struct sock *sk)
+static void bbr_init(struct sock *sk)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr *bbr = inet_csk_ca(sk);
@@ -2173,7 +2176,7 @@ static void bbr_note_loss(struct sock *sk)
 }
 
 /* Core TCP stack informs us that the given skb was just marked lost. */
-__bpf_kfunc static void bbr_skb_marked_lost(struct sock *sk,
+static void bbr_skb_marked_lost(struct sock *sk,
 					    const struct sk_buff *skb)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -2222,7 +2225,7 @@ static void bbr_run_loss_probe_recovery(struct sock *sk)
 }
 
 /* Revert short-term model if current loss recovery event was spurious. */
-__bpf_kfunc static u32 bbr_undo_cwnd(struct sock *sk)
+static u32 bbr_undo_cwnd(struct sock *sk)
 {
 	struct bbr *bbr = inet_csk_ca(sk);
 
@@ -2238,7 +2241,7 @@ __bpf_kfunc static u32 bbr_undo_cwnd(struct sock *sk)
 }
 
 /* Entering loss recovery, so save state for when we undo recovery. */
-__bpf_kfunc static u32 bbr_ssthresh(struct sock *sk)
+static u32 bbr_ssthresh(struct sock *sk)
 {
 	struct bbr *bbr = inet_csk_ca(sk);
 
@@ -2312,7 +2315,7 @@ static size_t bbr_get_info(struct sock *sk, u32 ext, int *attr,
 	return 0;
 }
 
-__bpf_kfunc static void bbr_set_state(struct sock *sk, u8 new_state)
+static void bbr_set_state(struct sock *sk, u8 new_state)
 {
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct bbr *bbr = inet_csk_ca(sk);
@@ -2339,13 +2342,18 @@ __bpf_kfunc static void bbr_set_state(struct sock *sk, u8 new_state)
 	}
 }
 
+/* Wrapper to fix the incompatible function pointer type for cong_control in Kernel 4.19 */
+static void bbr_main_wrapper(struct sock *sk, const struct rate_sample *rs)
+{
+	bbr_main(sk, 0, 0, rs);
+}
 
 static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 	.flags		= TCP_CONG_NON_RESTRICTED | TCP_CONG_WANTS_CE_EVENTS,
 	.name		= "bbr",
 	.owner		= THIS_MODULE,
 	.init		= bbr_init,
-	.cong_control	= bbr_main,
+	.cong_control	= bbr_main_wrapper,
 	.sndbuf_expand	= bbr_sndbuf_expand,
 	.skb_marked_lost = bbr_skb_marked_lost,
 	.undo_cwnd	= bbr_undo_cwnd,
@@ -2356,32 +2364,10 @@ static struct tcp_congestion_ops tcp_bbr_cong_ops __read_mostly = {
 	.set_state	= bbr_set_state,
 };
 
-BTF_KFUNCS_START(tcp_bbr_check_kfunc_ids)
-BTF_ID_FLAGS(func, bbr_init)
-BTF_ID_FLAGS(func, bbr_main)
-BTF_ID_FLAGS(func, bbr_sndbuf_expand)
-BTF_ID_FLAGS(func, bbr_skb_marked_lost)
-BTF_ID_FLAGS(func, bbr_undo_cwnd)
-BTF_ID_FLAGS(func, bbr_cwnd_event)
-BTF_ID_FLAGS(func, bbr_ssthresh)
-BTF_ID_FLAGS(func, bbr_tso_segs)
-BTF_ID_FLAGS(func, bbr_set_state)
-BTF_KFUNCS_END(tcp_bbr_check_kfunc_ids)
-
-static const struct btf_kfunc_id_set tcp_bbr_kfunc_set = {
-	.owner = THIS_MODULE,
-	.set   = &tcp_bbr_check_kfunc_ids,
-};
-
 static int __init bbr_register(void)
 {
-	int ret;
-
 	BUILD_BUG_ON(sizeof(struct bbr) > ICSK_CA_PRIV_SIZE);
 
-	ret = register_btf_kfunc_id_set(BPF_PROG_TYPE_STRUCT_OPS, &tcp_bbr_kfunc_set);
-	if (ret < 0)
-		return ret;
 	return tcp_register_congestion_control(&tcp_bbr_cong_ops);
 }
 
