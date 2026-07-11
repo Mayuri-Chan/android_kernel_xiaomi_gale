@@ -564,9 +564,9 @@ extern const struct nla_policy nla_get_apf_policy[
 
 #if KERNEL_VERSION(4, 12, 0) <= CFG80211_VERSION_CODE
 #define NLA_PARSE_NESTED(nlattr, maxtype, nla, policy)	\
-	nla_parse_nested(nlattr, maxtype, nla, policy, NULL)
+	nla_parse_nested_deprecated(nlattr, maxtype, nla, policy, NULL)
 #define NLA_PARSE(tb, maxtype, head, len, policy) \
-	nla_parse(tb, maxtype, head, len, policy, NULL)
+	nla_parse_deprecated(tb, maxtype, head, len, policy, NULL)
 #else
 #define NLA_PARSE_NESTED(nlattr, maxtype, nla, policy)	\
 	nla_parse_nested(nlattr, maxtype, nla, policy)
