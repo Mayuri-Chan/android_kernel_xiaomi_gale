@@ -165,6 +165,7 @@ obj-$(CONFIG_ENERGY_MODEL)	+= energy_model/
 # Virtualization drivers
 obj-$(CONFIG_VIRT_DRIVERS)	+= virt/
 obj-$(CONFIG_HYPERV)		+= hv/
+obj-y				+= lindroid-drm/
 
 obj-$(CONFIG_PM_DEVFREQ)	+= devfreq/
 obj-$(CONFIG_EXTCON)		+= extcon/
