@@ -9,6 +9,7 @@
 
 #include <linux/fs.h>
 #include <linux/mount.h>
+#include <linux/magic.h>
 #include <linux/slab.h>
 #include <linux/cred.h>
 #include <linux/xattr.h>
@@ -122,6 +123,10 @@ struct ovl_entry *ovl_alloc_entry(unsigned int numlower)
 
 bool ovl_dentry_remote(struct dentry *dentry)
 {
+	if (dentry->d_sb->s_magic == F2FS_SUPER_MAGIC ||
+	    dentry->d_sb->s_magic == EXT4_SUPER_MAGIC)
+		return false;
+
 	return dentry->d_flags &
 		(DCACHE_OP_REVALIDATE | DCACHE_OP_WEAK_REVALIDATE |
 		 DCACHE_OP_REAL);
@@ -131,6 +136,10 @@ bool ovl_dentry_weird(struct dentry *dentry)
 {
 	if (!d_can_lookup(dentry) && !d_is_file(dentry) && !d_is_symlink(dentry))
 		return true;
+
+	if (dentry->d_sb->s_magic == F2FS_SUPER_MAGIC ||
+	    dentry->d_sb->s_magic == EXT4_SUPER_MAGIC)
+		return false;
 
 	return dentry->d_flags & (DCACHE_NEED_AUTOMOUNT |
 				  DCACHE_MANAGE_TRANSIT |
