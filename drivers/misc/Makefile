@@ -62,3 +62,4 @@ obj-$(CONFIG_MISC_RTSX)		+= cardreader/
 obj-$(CONFIG_UID_SYS_STATS)	+= uid_sys_stats.o
 obj-y				+= mediatek/
 obj-$(CONFIG_MI_FS)		+= cpumaxfreq.o
+obj-$(CONFIG_NTSYNC)		+= ntsync.o
