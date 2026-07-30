@@ -86,7 +86,7 @@ void lrng_sysctl_update_max_write_thresh(u32 new_digestsize)
 	mb();
 }
 
-struct ctl_table random_table[] = {
+const struct ctl_table random_table[] = {
 	{
 		.procname	= "poolsize",
 		.maxlen		= sizeof(int),
