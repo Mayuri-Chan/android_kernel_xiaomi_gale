@@ -702,6 +702,11 @@ endif
 # Enable hot cold split optimization
 KBUILD_CFLAGS += $(call cc-option,-mllvm -hot-cold-split=true)
 
+# Enable MLGO optimizations for register allocation
+KBUILD_CFLAGS   += $(call cc-option,-mllvm -regalloc-enable-advisor=release)
+KBUILD_LDFLAGS  += $(call cc-option,-mllvm -regalloc-enable-advisor=release)
+KBUILD_LDFLAGS  += $(call cc-option,-mllvm -enable-ml-inliner=release)
+
 # Tell gcc to never replace conditional load with a non-conditional one
 KBUILD_CFLAGS	+= $(call cc-option,--param=allow-store-data-races=0)
 KBUILD_CFLAGS	+= $(call cc-option,-fno-allow-store-data-races)
