@@ -1,4 +1,4 @@
-CONFIG_LOCALVERSION="-万由里"
+CONFIG_LOCALVERSION="-Mayuri"
 # CONFIG_LOCALVERSION_AUTO is not set
 CONFIG_I2C_CHARDEV=y
 ### 2023.6.13 chengyuan@longcheer.com HTH-297468  Enable last_kmsg and last_logcat support __S ###
