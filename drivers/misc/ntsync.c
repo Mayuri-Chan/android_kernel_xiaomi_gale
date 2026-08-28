@@ -23,16 +23,7 @@
 #include <linux/compat.h>
 #include <uapi/linux/ntsync.h>
 
-#ifdef CONFIG_COMPAT
-static long compat_ptr_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
-{
-	if (!file->f_op->unlocked_ioctl)
-		return -ENOTTY;
-	return file->f_op->unlocked_ioctl(file, cmd, (unsigned long)compat_ptr(arg));
-}
-#else
-#define compat_ptr_ioctl NULL
-#endif
+
 
 #ifndef lockdep_assert
 #ifdef CONFIG_LOCKDEP
