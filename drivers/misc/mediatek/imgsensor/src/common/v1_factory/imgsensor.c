@@ -3017,7 +3017,7 @@ static struct platform_driver gimgsensor_platform_driver = {
 #endif
 	}
 };
-static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t imgsensor_name_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
   {
         ssize_t ret = 0;
         int num1 = 0;
@@ -3068,11 +3068,11 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
       ret = strlen(buf) + 1;
       return ret;
   }
-  static DEVICE_ATTR(sensor, 0664, imgsensor_name_show, NULL);
+  static struct kobj_attribute sensor_attr = __ATTR(sensor, 0664, imgsensor_name_show, NULL);
   static struct kobject * sensor_kobject;
 
 
-  static ssize_t sensorid_show(struct device *dev, struct device_attribute *attr, char *buf)
+  static ssize_t sensorid_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
   {
   	int i;
   	ssize_t size = 0;
@@ -3100,8 +3100,8 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
   	return 100;
   
   }
-  static DEVICE_ATTR(sensorid, 0664, sensorid_show, NULL);
-  static ssize_t sensorsn_show(struct device *dev, struct device_attribute *attr, char *buf)
+  static struct kobj_attribute sensorid_attr = __ATTR(sensorid, 0664, sensorid_show, NULL);
+  static ssize_t sensorsn_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)
   {
       int i;
       ssize_t size = 0;
@@ -3130,7 +3130,7 @@ static ssize_t imgsensor_name_show(struct device *dev, struct device_attribute *
   
   }
   
-  static DEVICE_ATTR(sensorsn, 0664, sensorsn_show, NULL);
+  static struct kobj_attribute sensorsn_attr = __ATTR(sensorsn, 0664, sensorsn_show, NULL);
 /*
  * imgsensor_init()
  */
@@ -3162,9 +3162,9 @@ static int __init imgsensor_init(void)
      if (sensor_kobject == NULL) {
           pr_info("[imgsensor_init]Big error: sensor_kobject_create_sysfs_ failed\n");
       } else {
-		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensor.attr);
-  		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensorid.attr);
-  		ret = sysfs_create_file(sensor_kobject, &dev_attr_sensorsn.attr);
+		ret = sysfs_create_file(sensor_kobject, &sensor_attr.attr);
+  		ret = sysfs_create_file(sensor_kobject, &sensorid_attr.attr);
+  		ret = sysfs_create_file(sensor_kobject, &sensorsn_attr.attr);
           if (ret) {
           	pr_err("%s failed \n", __func__);
           	kobject_del(sensor_kobject);
