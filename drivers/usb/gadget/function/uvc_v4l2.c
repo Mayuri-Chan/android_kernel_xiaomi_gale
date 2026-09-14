@@ -208,6 +208,8 @@ uvc_send_response(struct uvc_device *uvc, struct uvc_request_data *data)
 	}
 
 	req->length = min_t(unsigned int, uvc->event_length, data->length);
+	if (req->length > sizeof(data->data))
+		req->length = sizeof(data->data);
 	req->zero = data->length < uvc->event_length;
 	req->explicit_status = 0;
 
